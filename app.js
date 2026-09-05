@@ -289,18 +289,46 @@
     }
 
     function getNormalizedSyncEndpoint(rawUrl) {
-        if (!rawUrl) return { restUrl: '', isFirebase: false, firebaseUrl: '', firebasePath: 'journal_data' };
+        if (!rawUrl) return { restUrl: '', isFirebase: false, isGist: false, firebaseUrl: '', firebasePath: 'journal_data' };
         let url = rawUrl.trim();
         if (!/^https?:\/\//i.test(url)) {
             url = 'https://' + url;
         }
 
+        // 1. GitHub Gist URL
+        // e.g. https://gist.github.com/username/a1b2c3d4e5 or https://api.github.com/gists/a1b2c3d4e5
+        const gistMatch = url.match(/(?:gist\.github\.com\/[^\/]+\/|api\.github\.com\/gists\/)([a-f0-9]{15,40})/i);
+        if (gistMatch) {
+            const gistId = gistMatch[1];
+            return {
+                restUrl: `https://api.github.com/gists/${gistId}`,
+                isFirebase: false,
+                isGist: true,
+                gistId: gistId,
+                firebaseUrl: '',
+                firebasePath: ''
+            };
+        }
+
+        // 2. npoint.io URL (Zero-config free JSON database)
+        // e.g. https://www.npoint.io/docs/xxxxxx or https://api.npoint.io/xxxxxx
+        if (/npoint\.io/i.test(url)) {
+            const npointId = url.split('/').filter(Boolean).pop().replace(/\.json$/i, '');
+            return {
+                restUrl: `https://api.npoint.io/${npointId}`,
+                isFirebase: false,
+                isGist: false,
+                firebaseUrl: '',
+                firebasePath: ''
+            };
+        }
+
+        // 3. Firebase Realtime Database
         const isFirebase = /firebaseio\.com|firebasedatabase\.app/i.test(url);
         if (isFirebase) {
             // Normalize Firebase URL: ensure it points to a .json endpoint
             let clean = url.replace(/\/+$/, '');
             if (!clean.endsWith('.json')) {
-                // If it's just the root domain, e.g. https://my-app.firebaseio.com -> append /journal_data.json
                 const pathParts = clean.split('://')[1].split('/');
                 if (pathParts.length === 1) {
                     clean += '/journal_data.json';
@@ -308,7 +336,6 @@
                     clean += '.json';
                 }
             }
-            // Extract root database URL and path for Firebase SDK
             const urlObj = new URL(clean);
             const rootDomain = `${urlObj.protocol}//${urlObj.host}`;
             const pathName = urlObj.pathname.replace(/^\/+/, '').replace(/\.json$/i, '') || 'journal_data';
@@ -316,15 +343,17 @@
             return {
                 restUrl: clean,
                 isFirebase: true,
+                isGist: false,
                 firebaseUrl: rootDomain,
                 firebasePath: pathName
             };
         }
 
-        // Generic JSON Endpoint (e.g. npoint.io, jsonbin.io, worker)
+        // 4. Generic JSON Endpoint (jsonbin.io, cloudflare worker, mockapi, etc.)
         return {
             restUrl: url,
             isFirebase: false,
+            isGist: false,
             firebaseUrl: '',
             firebasePath: ''
         };
@@ -428,9 +457,23 @@
 
     async function pullFromRestUrl(restUrl, isManual = false) {
         try {
-            const res = await fetch(restUrl);
+            const endpoint = getNormalizedSyncEndpoint(cloudConfig.syncUrl);
+            const res = await fetch(endpoint.restUrl);
             if (res.ok) {
-                const remoteData = await res.json();
+                let remoteData = await res.json();
+
+                // Handle GitHub Gist structure
+                if (endpoint.isGist && remoteData.files) {
+                    const file = remoteData.files['swing_journal.json'] || Object.values(remoteData.files)[0];
+                    if (file && file.content) {
+                        try {
+                            remoteData = JSON.parse(file.content);
+                        } catch (e) {
+                            remoteData = null;
+                        }
+                    }
+                }
+
                 if (remoteData && Array.isArray(remoteData.trades)) {
                     const localMod = state.lastModified || 0;
                     const remoteMod = remoteData.lastModified || 0;
@@ -457,7 +500,11 @@
                     return true;
                 }
             } else {
-                updateCloudStatusUI('offline', `Server replied with HTTP ${res.status}`);
+                if (res.status === 401) {
+                    updateCloudStatusUI('offline', 'Firebase Rules Locked (401). Set read/write to true in Firebase Console.');
+                } else {
+                    updateCloudStatusUI('offline', `Server replied with HTTP ${res.status}`);
+                }
             }
         } catch (e) {
             updateCloudStatusUI('offline', 'Could not reach database endpoint.');
@@ -490,13 +537,29 @@
 
             if (cloudDbRef) {
                 await cloudDbRef.set(payload);
+            } else if (endpoint.isGist) {
+                const res = await fetch(endpoint.restUrl, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        files: {
+                            'swing_journal.json': { content: JSON.stringify(payload, null, 2) }
+                        }
+                    })
+                });
+                if (!res.ok) throw new Error(`GitHub Gist HTTP ${res.status}`);
             } else {
                 const res = await fetch(endpoint.restUrl, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        throw new Error('Firebase Permission Denied (401). Please set rules to true in Firebase Console.');
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
             }
 
             isCloudPushing = false;
@@ -527,7 +590,23 @@
                 remoteData = snap.val();
             } else {
                 const res = await fetch(endpoint.restUrl);
-                if (res.ok) remoteData = await res.json();
+                if (res.ok) {
+                    remoteData = await res.json();
+                    if (endpoint.isGist && remoteData.files) {
+                        const file = remoteData.files['swing_journal.json'] || Object.values(remoteData.files)[0];
+                        if (file && file.content) {
+                            try {
+                                remoteData = JSON.parse(file.content);
+                            } catch (e) {
+                                remoteData = null;
+                            }
+                        }
+                    }
+                } else if (res.status === 401) {
+                    throw new Error('Firebase Permission Denied (401). Set database rules to true in Firebase Console.');
+                } else {
+                    throw new Error(`HTTP ${res.status}`);
+                }
             }
 
             if (remoteData && Array.isArray(remoteData.trades)) {
@@ -654,6 +733,8 @@
                 const res = await fetch(endpoint.restUrl);
                 if (res.ok) {
                     showToast('✅ Database Link is working and accessible!', 'success');
+                } else if (res.status === 401) {
+                    showToast('⚠️ 401 Permission Denied: In Firebase Console -> Realtime Database -> Rules, set: ".read": true, ".write": true, then click Publish.', 'warning');
                 } else {
                     showToast(`⚠️ Server replied with status: ${res.status}`, 'warning');
                 }
