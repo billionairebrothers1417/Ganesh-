@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Swing Trading Journal &amp; Terminal Pro</title>
+    <meta name="description" content="Eye-friendly equity swing trading journal with position sizing, risk management, trade analytics, and post-mortem review">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Swing Journal">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Firebase Realtime Database SDK (Official Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body data-theme="slate-calm" data-font-size="comfortable">
+
+<div class="app">
+
+    <!-- ═══════════════ HERO HEADER & EXECUTIVE SUMMARY ═══════════════ -->
+    <header class="summary-bar">
+        <div class="summary-brand">
+            <div class="brand-icon-wrapper">
+                <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            </div>
+            <div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <h1 class="brand-title">Swing Terminal</h1>
+                    <span class="market-live-pill"><span class="market-live-dot"></span> LIVE JOURNAL</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Controls Toolbar: Cloud Sync + Light/Dark Toggle + Themes + Font Zoom -->
+        <div class="header-controls-toolbar">
+            <!-- Realtime Cloud Sync Button & Status -->
+            <button id="btn-open-cloud-sync" class="btn-cloud-status" title="Configure Realtime Database & Multi-Device Live Sync">
+                <span class="cloud-status-dot offline" id="cloud-status-dot"></span>
+                <span class="cloud-status-text" id="cloud-status-text">Cloud Sync</span>
+            </button>
+
+            <!-- Instant 1-Click Dark/Light Mode Switcher -->
+            <button id="btn-mode-toggle" class="mode-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="mode-icon">☀️</span>
+                <span id="mode-text">Light Mode</span>
+            </button>
+
+            <!-- Theme Picker -->
+            <div class="theme-picker-container" title="Select Eye-Friendly Dark &amp; Light Themes">
+                <span class="theme-picker-label">THEME</span>
+                <!-- Light / White Themes -->
+                <button class="theme-pill-btn theme-pill-light-white" data-theme="light-white" title="Pure White / Clean Light Mode"></button>
+                <button class="theme-pill-btn theme-pill-warm-paper" data-theme="warm-paper" title="Warm Paper / Ivory Eye-Care Mode"></button>
+                <!-- Dark Themes -->
+                <button class="theme-pill-btn theme-pill-slate-calm active" data-theme="slate-calm" title="Slate Calm (Default Soft Dark)"></button>
+                <button class="theme-pill-btn theme-pill-warm-amber" data-theme="warm-amber" title="Warm Amber (Zero Blue-Light Night Shift)"></button>
+                <button class="theme-pill-btn theme-pill-forest-pine" data-theme="forest-pine" title="Forest Pine (Natural Green Eye-Rest)"></button>
+                <button class="theme-pill-btn theme-pill-midnight-navy" data-theme="midnight-navy" title="Midnight Navy (Deep Calm Indigo)"></button>
+                <button class="theme-pill-btn theme-pill-charcoal-matte" data-theme="charcoal-matte" title="Charcoal Matte (Anti-Glare Dark)"></button>
+            </div>
+
+            <!-- Font Size Scaler -->
+            <div class="font-scale-container" title="Adjust Text Size for Eye Comfort">
+                <button class="font-scale-btn" data-size="standard" title="Standard Size (15px)">A-</button>
+                <button class="font-scale-btn active" data-size="comfortable" title="Comfortable Size (16.5px)">A</button>
+                <button class="font-scale-btn" data-size="large" title="Large / Relaxed (18px)">A+</button>
+            </div>
+        </div>
+
+        <div class="summary-metrics">
+            <div class="summary-card">
+                <span class="summary-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><path d="M16 12h.01"/></svg>
+                    Starting Capital
+                </span>
+                <span class="summary-value" id="sv-portfolio">—</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-card">
+                <span class="summary-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                    Available Cash
+                </span>
+                <span class="summary-value" id="sv-cash">—</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-card">
+                <span class="summary-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/></svg>
+                    Realised P&amp;L
+                </span>
+                <span class="summary-value" id="sv-realised">—</span>
+                <span class="summary-sub" id="sv-realised-pct"></span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-card">
+                <span class="summary-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 10-4 4-2-2"/></svg>
+                    Unrealised P&amp;L
+                </span>
+                <span class="summary-value" id="sv-unrealised">—</span>
+                <span class="summary-sub" id="sv-unrealised-pct"></span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-card">
+                <span class="summary-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Total Equity
+                </span>
+                <span class="summary-value" id="sv-total">—</span>
+                <span class="summary-sub" id="sv-return"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════ TAB NAVIGATION ═══════════════ -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="entry">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            <span>New Trade</span>
+        </button>
+        <button class="tab-btn" data-tab="open">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span>Open Positions</span>
+            <span class="badge" id="open-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="closed">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Closed Journal</span>
+        </button>
+        <button class="tab-btn" data-tab="shwas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/><circle cx="12" cy="12" r="2"/></svg>
+            <span>Market Shwas</span>
+            <span class="badge" id="shwas-tab-badge" style="background:#10b981; font-size:0.68rem; padding:2px 6px;">76%</span>
+        </button>
+        <button class="tab-btn" data-tab="charts">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <span>Performance Analytics</span>
+        </button>
+        <button class="tab-btn" data-tab="calculator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+            <span>Position Sizer</span>
+        </button>
+        <button class="tab-btn" data-tab="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Ledger &amp; Settings</span>
+        </button>
+    </nav>
+
+    <!-- ═══════════════ TAB 1: NEW TRADE ENTRY ═══════════════ -->
+    <section id="content-entry" class="tab-content active">
+        <div class="entry-layout">
+            <div class="entry-form-card">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    New Swing Trade Entry
+                </h2>
+                <p class="section-desc">Plan entry, position sizing, and stoploss with institutional risk rules before executing.</p>
+
+                <form id="trade-entry-form" autocomplete="off">
+                    <div class="form-row">
+                        <div class="form-group flex-2">
+                            <label class="form-label" for="entry-stock">Stock Symbol / Ticker <span class="form-label-hint">e.g. RELIANCE, TATAMOTORS</span></label>
+                            <input type="text" id="entry-stock" class="form-input" required placeholder="Type symbol..." list="stock-suggestions">
+                            <datalist id="stock-suggestions">
+                                <option value="RELIANCE">
+                                <option value="TATAMOTORS">
+                                <option value="HDFCBANK">
+                                <option value="ICICIBANK">
+                                <option value="INFY">
+                                <option value="TCS">
+                                <option value="DIXON">
+                                <option value="TRENT">
+                                <option value="BEL">
+                                <option value="HAL">
+                                <option value="ZOMATO">
+                                <option value="BAJFINANCE">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="entry-direction">Direction</label>
+                            <select id="entry-direction" class="form-input">
+                                <option value="LONG">LONG (Buy)</option>
+                                <option value="SHORT">SHORT (Sell)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="entry-buy-date">Entry Date</label>
+                            <input type="date" id="entry-buy-date" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label class="form-label" for="entry-buy-price">Entry Price (₹)</label>
+                                <button type="button" id="btn-fetch-entry-price" class="btn-ghost" style="font-size:0.75rem; padding:1px 6px; cursor:pointer; color:var(--accent-color); font-weight:700;" title="Fetch current live market price for the typed symbol">⚡ Live NSE Price</button>
+                            </div>
+                            <input type="number" id="entry-buy-price" class="form-input" step="0.01" min="0.01" required placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="entry-qty">Quantity (Shares)</label>
+                            <input type="number" id="entry-qty" class="form-input" step="1" min="1" required placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="entry-stoploss">Initial Stoploss (₹)</label>
+                            <input type="number" id="entry-stoploss" class="form-input" step="0.01" min="0" required placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group flex-2">
+                            <label class="form-label" for="entry-reason">Setup Strategy</label>
+                            <div style="display:flex; gap:8px;">
+                                <select id="entry-reason" class="form-input" style="flex:1;"></select>
+                                <button type="button" id="btn-open-setup-modal" class="btn btn-secondary btn-sm" title="Add, edit or manage setups" style="padding:0 14px; height:42px; font-size:0.85rem; font-weight:700; white-space:nowrap;">
+                                    ➕ New Setup
+                                </button>
+                            </div>
+                            <input type="text" id="entry-reason-custom" class="form-input mt-sm hidden" placeholder="Enter custom setup name...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="entry-market-regime">Market Trend / Regime</label>
+                            <select id="entry-market-regime" class="form-input">
+                                <option value="Confirmed Uptrend">Confirmed Uptrend (Market Rally)</option>
+                                <option value="Uptrend Under Pressure">Uptrend Under Pressure</option>
+                                <option value="Market in Correction">Market in Correction</option>
+                                <option value="Rangebound / Choppy">Rangebound / Choppy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pre-Trade Checklist -->
+                    <div class="checklist-container">
+                        <label class="form-label mb-sm">Pre-Trade Discipline Checklist</label>
+                        <div class="checklist-grid">
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-weekly" checked>
+                                <span>Weekly Chart in Uptrend</span>
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-index20" checked>
+                                <span>Index Above 20 DMA</span>
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-trend" checked>
+                                <span>Sector &amp; Market in sync</span>
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-stop" checked>
+                                <span>Stoploss based on technical structure</span>
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-risk" checked>
+                                <span>Risk ≤ 1.5% of total portfolio</span>
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-catalyst" checked>
+                                <span>Volume expansion / Catalyst present</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Chart Screenshot Dropzone -->
+                    <div class="form-group mb-md">
+                        <label class="form-label">Chart Screenshot Attachment <span class="form-label-hint">Paste clipboard image (Ctrl+V) or click to browse</span></label>
+                        <div id="entry-chart-dropzone" class="image-dropzone">
+                            <div class="image-dropzone-icon">📷</div>
+                            <div class="image-dropzone-text">Click to upload chart or paste image directly</div>
+                            <div class="image-dropzone-hint">Supports PNG, JPG, WebP screenshots</div>
+                            <input type="file" id="entry-chart-input" accept="image/*" class="sr-only">
+                        </div>
+                        <div id="entry-images-preview" class="image-preview-thumb-container"></div>
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label class="form-label" for="entry-notes">Trade Hypothesis &amp; Plan Notes</label>
+                        <textarea id="entry-notes" class="form-input" rows="2" placeholder="Why are you taking this trade? What is your catalyst or trigger?"></textarea>
+                    </div>
+
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                            Add Trade to Journal
+                        </button>
+                        <button type="reset" class="btn btn-ghost">Reset Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="entry-sidebar">
+                <!-- Trade Preview Card with Risk-Reward Visualizer -->
+                <div class="preview-card">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M12 2v20"/></svg>
+                        Live Trade Parameters
+                    </h3>
+                    <div class="preview-grid">
+                        <div class="preview-item">
+                            <span class="preview-label">Position Amount</span>
+                            <span class="preview-value mono" id="preview-amount">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Position Size %</span>
+                            <span class="preview-value mono" id="preview-position-size">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Stoploss %</span>
+                            <span class="preview-value mono" id="preview-sl-pct">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">1R Risk Amount</span>
+                            <span class="preview-value mono" id="preview-risk-amount">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Portfolio Risk %</span>
+                            <span class="preview-value mono" id="preview-risk-pct">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Risk:Reward Targets & Visualizer -->
+                    <div class="rr-visualizer">
+                        <div class="preview-grid">
+                            <div class="preview-item">
+                                <span class="preview-label">1R Target Price</span>
+                                <span class="preview-value mono text-win" id="preview-target-1">—</span>
+                            </div>
+                            <div class="preview-item">
+                                <span class="preview-label">2R Target Price</span>
+                                <span class="preview-value mono text-win" id="preview-target-2">—</span>
+                            </div>
+                            <div class="preview-item">
+                                <span class="preview-label">3R Target Price</span>
+                                <span class="preview-value mono text-win" id="preview-target-3">—</span>
+                            </div>
+                        </div>
+                        <div class="rr-bar-container">
+                            <div class="rr-bar-risk" title="1R Risk Zone"></div>
+                            <div class="rr-bar-target1" title="1R Reward Zone"></div>
+                            <div class="rr-bar-target2" title="2R Reward Zone"></div>
+                            <div class="rr-bar-target3" title="3R Reward Zone"></div>
+                        </div>
+                        <div class="rr-labels">
+                            <span style="color:var(--loss-color);">Stoploss</span>
+                            <span>Entry</span>
+                            <span style="color:#10b981;">1R</span>
+                            <span style="color:#0d9488;">2R</span>
+                            <span style="color:#0284c7;">3R Target</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Position Size Helper -->
+                <div class="entry-sidebar-card">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Risk-Based Sizer Helper
+                    </h3>
+                    <p class="section-desc">Calculate the exact number of shares based on your maximum allowable portfolio risk.</p>
+                    <div class="form-group">
+                        <label class="form-label" for="helper-max-risk">Max Portfolio Risk %</label>
+                        <input type="number" id="helper-max-risk" class="form-input" step="0.1" min="0.1" max="10" value="1.0" placeholder="1.0">
+                    </div>
+                    <div class="calc-results mt-sm">
+                        <div class="calc-result-row">
+                            <span class="calc-result-label">Recommended Shares</span>
+                            <span class="calc-result-value mono" id="helper-suggested-qty">—</span>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-use-qty" class="btn btn-secondary btn-sm mt-md" style="width:100%;">
+                        Apply This Quantity to Form
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ TAB 2: OPEN TRADES TERMINAL ═══════════════ -->
+    <section id="content-open" class="tab-content">
+        <div id="risk-alert-banner" class="alert-banner hidden">
+            <span class="alert-icon">⚠️</span>
+            <span id="risk-alert-text"></span>
+        </div>
+
+        <!-- Live CMP NSE Toolbar -->
+        <div class="open-trades-toolbar">
+            <div class="open-toolbar-left">
+                <button id="btn-fetch-live-cmps" class="btn btn-primary btn-sm" title="Fetch latest live market price of all open stocks from NSE">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15" style="vertical-align:middle;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    <span id="btn-live-text">Fetch Live NSE CMPs</span>
+                </button>
+                <label class="auto-refresh-toggle" title="Automatically sync CMP every 60 seconds">
+                    <input type="checkbox" id="chk-auto-refresh-cmp">
+                    <span>⚡ Auto-Sync (60s)</span>
+                </label>
+                <button id="btn-toggle-open-view" class="btn btn-secondary btn-sm btn-view-mode-toggle" title="Switch between Mobile Cards and Table view">
+                    <span class="view-mode-icon">📱</span> <span class="view-mode-text">Cards View</span>
+                </button>
+            </div>
+            <div class="open-toolbar-right">
+                <span id="live-status-indicator" class="market-live-pill" style="font-size:0.75rem;">
+                    <span class="market-live-dot"></span> <span id="live-status-text">NSE Market Live</span>
+                </span>
+                <span id="live-last-updated" class="text-muted">Last synced: —</span>
+            </div>
+        </div>
+
+        <div id="open-empty" class="empty-state hidden">
+            <div class="empty-icon">📊</div>
+            <p>No active open swing trades.</p>
+            <p class="empty-hint">Log a new trade in the "New Trade" tab to track it here.</p>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-wrapper" id="open-table-wrapper">
+            <table class="data-table" id="open-trades-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">Stock / Symbol</th>
+                        <th>Entry Date</th>
+                        <th class="num">Entry / Avg Price</th>
+                        <th class="num">Shares</th>
+                        <th class="num">Amount</th>
+                        <th class="num">Size %</th>
+                        <th class="num cmp-col">Stoploss (₹)</th>
+                        <th class="num">SL %</th>
+                        <th class="num">Risk %</th>
+                        <th>Setup Strategy</th>
+                        <th class="num cmp-col">CMP (₹)</th>
+                        <th class="num">Running P&amp;L</th>
+                        <th class="num">Running %</th>
+                        <th class="num">Current R</th>
+                        <th class="num">Days</th>
+                        <th class="action-col" style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="open-trades-tbody"></tbody>
+                <tfoot>
+                    <tr class="totals-row">
+                        <td class="sticky-col" colspan="4"><strong>Total Open Portfolio</strong></td>
+                        <td class="num"><strong id="ot-amount">—</strong></td>
+                        <td class="num"><strong id="ot-pos-size">—</strong></td>
+                        <td colspan="2"></td>
+                        <td class="num"><strong id="ot-risk">—</strong></td>
+                        <td></td>
+                        <td></td>
+                        <td class="num"><strong id="ot-running">—</strong></td>
+                        <td class="num"><strong id="ot-running-pct">—</strong></td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Mobile Adaptive Cards View -->
+        <div class="mobile-trade-cards-container" id="open-trades-cards"></div>
+    </section>
+
+    <!-- ═══════════════ TAB 3: CLOSED TRADES & POST-MORTEM ═══════════════ -->
+    <section id="content-closed" class="tab-content">
+        <!-- Stats Summary Bar -->
+        <div class="stats-panel">
+            <div class="stat-card"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Total Closed</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-win-rate">—</span><span class="stat-label">Win Rate</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-avg-win">—</span><span class="stat-label">Avg Win</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-avg-loss">—</span><span class="stat-label">Avg Loss</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-expectancy">—</span><span class="stat-label">Expectancy / Trade</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-profit-factor">—</span><span class="stat-label">Profit Factor</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-avg-holding">—</span><span class="stat-label">Avg Holding</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-avg-r">—</span><span class="stat-label">Avg R-Multiple</span></div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label class="filter-label">From</label>
+                <input type="date" id="filter-date-from" class="form-input filter-input">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">To</label>
+                <input type="date" id="filter-date-to" class="form-input filter-input">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Stock</label>
+                <input type="text" id="filter-stock" class="form-input filter-input" placeholder="Search ticker...">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Setup</label>
+                <select id="filter-setup" class="form-input filter-input">
+                    <option value="all">All Setups</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Outcome</label>
+                <select id="filter-outcome" class="form-input filter-input">
+                    <option value="all">All</option>
+                    <option value="win">Winners Only</option>
+                    <option value="loss">Losers Only</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Mistake</label>
+                <select id="filter-mistake" class="form-input filter-input">
+                    <option value="all">All Mistakes</option>
+                </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-clear-filters">Reset Filters</button>
+            <button id="btn-toggle-closed-view" class="btn btn-secondary btn-sm btn-view-mode-toggle" title="Switch between Mobile Cards and Table view" style="margin-left:auto;">
+                <span class="view-mode-icon">📱</span> <span class="view-mode-text">Cards View</span>
+            </button>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-wrapper" id="closed-table-wrapper">
+            <table class="data-table" id="closed-trades-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">Stock</th>
+                        <th>Entry Date</th>
+                        <th class="num">Entry Price</th>
+                        <th class="num">Shares</th>
+                        <th class="num">Cost Basis</th>
+                        <th class="num">SL %</th>
+                        <th>Exit Date</th>
+                        <th class="num">Exit Price</th>
+                        <th class="num">Proceeds</th>
+                        <th class="num">Days</th>
+                        <th class="num">Realised P&amp;L</th>
+                        <th class="num">Return %</th>
+                        <th class="num">R-Multiple</th>
+                        <th>Setup Strategy</th>
+                        <th>Exit Reason</th>
+                        <th class="action-col" style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="closed-trades-tbody"></tbody>
+                <tfoot>
+                    <tr class="totals-row">
+                        <td class="sticky-col" colspan="4"><strong>Total Closed Trades</strong></td>
+                        <td class="num"><strong id="ct-amount">—</strong></td>
+                        <td colspan="3"></td>
+                        <td class="num"><strong id="ct-sell">—</strong></td>
+                        <td></td>
+                        <td class="num"><strong id="ct-gl">—</strong></td>
+                        <td colspan="6"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Mobile Adaptive Cards View -->
+        <div class="mobile-trade-cards-container" id="closed-trades-cards"></div>
+
+        <div id="closed-empty" class="empty-state hidden">
+            <p>No closed trades found matching your filters.</p>
+        </div>
+    </section>
+
+    <!-- ═══════════════ TAB: MARKET SHWAS (MARKET BREADTH & HEALTH TERMINAL) ═══════════════ -->
+    <section id="content-shwas" class="tab-content">
+        <!-- Shwas Top Action Toolbar -->
+        <div class="open-trades-toolbar" style="margin-bottom: 20px;">
+            <div class="open-toolbar-left">
+                <span class="brand-title" style="font-size:1.15rem; display:inline-flex; align-items:center; gap:8px;">
+                    <span>🫁</span> Market Shwas (Breadth Terminal)
+                </span>
+                <span id="shwas-regime-badge" class="tag-badge direction-long" style="font-size:0.8rem; padding:4px 10px;">
+                    🟢 Confirmed Uptrend (76% Health)
+                </span>
+            </div>
+            <div class="open-toolbar-right" style="gap:10px;">
+                <button id="btn-log-shwas" class="btn btn-primary btn-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    <span>+ Log Daily Breadth</span>
+                </button>
+                <button id="btn-auto-shwas" class="btn btn-secondary btn-sm" title="Auto-estimate live breadth from market sample">
+                    <span>⚡ Auto-Refresh</span>
+                </button>
+                <a href="https://chartink.com/dashboard/358007" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open official Chartink Market Shwas dashboard in new tab">
+                    <span>📈 Chartink 358007 ↗</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Master Regime & Sizing Hero Card -->
+        <div class="shwas-hero-card">
+            <div class="shwas-hero-left">
+                <div class="shwas-health-score-wrapper">
+                    <div class="shwas-score-circle" id="shwas-score-circle">
+                        <span class="shwas-score-val" id="shwas-health-score">76</span>
+                        <span class="shwas-score-label">SHWAS INDEX</span>
+                    </div>
+                </div>
+                <div class="shwas-regime-info">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <h3 class="shwas-regime-title" id="shwas-regime-title">Confirmed Bull Market Rally</h3>
+                        <span class="badge" id="shwas-regime-sub-badge" style="background:#10b981;">Oxygen Rich</span>
+                    </div>
+                    <p class="shwas-regime-desc" id="shwas-regime-desc">Broad institutional accumulation underway. Strong moving average participation across Nifty 500 stocks with positive net new highs expansion.</p>
+                    <div class="shwas-action-posture" id="shwas-action-posture">
+                        <strong>🎯 Swing Action Posture:</strong> Recommended Portfolio Exposure: <span class="text-win" id="shwas-exposure-text">100% Full Sizing</span>. Aggressively buy high-relative-strength breakouts.
+                    </div>
+                </div>
+            </div>
+            <div class="shwas-hero-metrics">
+                <div class="shwas-summary-metric">
+                    <span class="summary-label">50 DMA Breadth</span>
+                    <span class="summary-value mono text-win" id="shwas-stat-50dma">72.4%</span>
+                    <span class="summary-sub" id="shwas-stat-50dma-sub">362 / 500 Stocks</span>
+                </div>
+                <div class="shwas-summary-metric">
+                    <span class="summary-label">Net 52W High-Low</span>
+                    <span class="summary-value mono text-win" id="shwas-stat-nhnl">+48</span>
+                    <span class="summary-sub" id="shwas-stat-nhnl-sub">54 NH vs 6 NL</span>
+                </div>
+                <div class="shwas-summary-metric">
+                    <span class="summary-label">4.5% Thrust Ratio</span>
+                    <span class="summary-value mono text-win" id="shwas-stat-thrust">3.8x</span>
+                    <span class="summary-sub" id="shwas-stat-thrust-sub">68 Up vs 18 Down</span>
+                </div>
+                <div class="shwas-summary-metric">
+                    <span class="summary-label">Advance / Decline</span>
+                    <span class="summary-value mono text-win" id="shwas-stat-advdec">1.75</span>
+                    <span class="summary-sub" id="shwas-stat-advdec-sub">1,480 Adv / 845 Dec</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ FII / DII INSTITUTIONAL BUYING & SELLING VOLUME (CASH SEGMENT ONLY) ═══════════════ -->
+        <div class="fii-dii-panel entry-form-card" style="margin-top: 24px; padding: 22px; border-color: var(--border-focus);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                <div>
+                    <h3 class="card-title" style="margin:0; font-size:1.08rem; display:flex; align-items:center; gap:8px;">
+                        <span>🏛️</span> FII &amp; DII Institutional Cash Market Activity (₹ in Crores)
+                    </h3>
+                    <p class="section-desc" style="margin:2px 0 0 0;">Provisional equity cash market (CM) flow across NSE &amp; BSE only. Excludes F&amp;O derivatives &amp; holidays.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span id="fii-dii-sentiment-badge" class="badge" style="background:#10b981; font-size:0.8rem; padding:6px 12px; font-weight:700;">
+                        🟢 Strong Institutional Inflow
+                    </span>
+                    <button id="btn-sync-nse-fiidii" class="btn btn-primary btn-sm" style="display:inline-flex; align-items:center; gap:7px;" title="Fetch latest FII & DII Cash trading activity from StockMojo Summary">
+                        <span class="btn-spinner-slot">⚡</span>
+                        <span class="btn-text-slot">Fetch Live StockMojo Data</span>
+                    </button>
+                    <button id="btn-open-fii-direct-modal" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;" title="Import or manually enter exact FII & DII figures from StockMojo">
+                        <span>✏️ Import / Edit Figures</span>
+                    </button>
+                    <a href="https://stockmojo.in/fii-dii-data-summary" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open StockMojo FII & DII Data Summary Live Dashboard">
+                        <span>📊 StockMojo Live ↗</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3 Main Institutional Hero KPI Cards -->
+            <div class="fii-dii-cards-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+                
+                <!-- FII Card -->
+                <div class="stat-card" style="border-top:3px solid #38bdf8; background:var(--bg-card); padding:16px; border-radius:var(--radius-md);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span class="stat-label" style="font-weight:700; color:var(--text-main);">🏛️ FII / FPI Cash Flow</span>
+                        <span class="badge" id="fii-flow-badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; font-size:0.7rem;">Cash Segment</span>
+                    </div>
+                    <div class="stat-value mono text-win" id="fii-net-val" style="font-size:1.45rem; font-weight:800; margin-bottom:6px;">
+                        +₹2,235.40 Cr
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-sub); border-top:1px solid var(--border-card); padding-top:6px;">
+                        <span>Cash Buy: <strong class="mono" id="fii-buy-val">₹12,450.60 Cr</strong></span>
+                        <span>Cash Sell: <strong class="mono" id="fii-sell-val">₹10,215.20 Cr</strong></span>
+                    </div>
+                </div>
+
+                <!-- DII Card -->
+                <div class="stat-card" style="border-top:3px solid #10b981; background:var(--bg-card); padding:16px; border-radius:var(--radius-md);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span class="stat-label" style="font-weight:700; color:var(--text-main);">🏢 DII Cash Flow</span>
+                        <span class="badge" id="dii-flow-badge" style="background:rgba(16, 185, 129, 0.2); color:#10b981; font-size:0.7rem;">Cash Segment</span>
+                    </div>
+                    <div class="stat-value mono text-win" id="dii-net-val" style="font-size:1.45rem; font-weight:800; margin-bottom:6px;">
+                        +₹2,560.40 Cr
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-sub); border-top:1px solid var(--border-card); padding-top:6px;">
+                        <span>Cash Buy: <strong class="mono" id="dii-buy-val">₹14,180.50 Cr</strong></span>
+                        <span>Cash Sell: <strong class="mono" id="dii-sell-val">₹11,620.10 Cr</strong></span>
+                    </div>
+                </div>
+
+                <!-- Combined Total Net Card -->
+                <div class="stat-card" style="border-top:3px solid #f59e0b; background:var(--bg-card); padding:16px; border-radius:var(--radius-md);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span class="stat-label" style="font-weight:700; color:var(--text-main);">⚖️ Combined Cash Net (FII + DII)</span>
+                        <span class="badge" id="combined-flow-badge" style="background:rgba(245, 158, 11, 0.2); color:#f59e0b; font-size:0.7rem;">Cash Net</span>
+                    </div>
+                    <div class="stat-value mono text-win" id="combined-net-val" style="font-size:1.45rem; font-weight:800; margin-bottom:6px;">
+                        +₹4,795.80 Cr
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-sub); border-top:1px solid var(--border-card); padding-top:6px;">
+                        <span>Total Cash Buy: <strong class="mono" id="total-inst-buy">₹26,631.10 Cr</strong></span>
+                        <span>Total Cash Sell: <strong class="mono" id="total-inst-sell">₹21,835.30 Cr</strong></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FII/DII Chart & Trend Table -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap:18px; margin-top:20px;">
+                <div class="chart-container" style="margin:0; background:var(--bg-card);">
+                    <div class="chart-header" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                        <h4 class="card-title" id="shwas-fii-dii-chart-title" style="font-size:0.92rem; margin:0;">
+                            <span>📊</span> FII vs DII Daily Cash Net Flow (₹ Crores)
+                        </h4>
+                        <span class="text-muted" id="shwas-fii-dii-chart-sub" style="font-size:0.75rem;">Trading Sessions (₹ Cr)</span>
+                    </div>
+                    <div class="chart-wrapper" style="height:220px;">
+                        <canvas id="shwas-fii-dii-chart-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-card); padding:14px; overflow-x:auto;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h4 class="card-title" style="font-size:0.92rem; margin:0;">
+                                <span>📋</span> Recent Cash Flow Activity
+                            </h4>
+                            <span class="text-muted" style="font-size:0.75rem;">(₹ in Crores)</span>
+                        </div>
+
+                        <!-- Daily / Weekly / Monthly Switcher -->
+                        <div class="pill-group fii-dii-timeframe-pills" style="display:flex; gap:4px; background:var(--bg-sub); padding:3px; border-radius:6px; border:1px solid var(--border-card);">
+                            <button class="btn-timeframe btn-fii-timeframe active" data-timeframe="daily" style="padding:4px 10px; font-size:0.75rem; border:none; border-radius:4px; cursor:pointer; font-weight:600; background:var(--accent-primary); color:#ffffff; transition:all 0.15s ease;">
+                                📅 Daily
+                            </button>
+                            <button class="btn-timeframe btn-fii-timeframe" data-timeframe="weekly" style="padding:4px 10px; font-size:0.75rem; border:none; border-radius:4px; cursor:pointer; font-weight:600; background:transparent; color:var(--text-sub); transition:all 0.15s ease;">
+                                🗓️ Weekly
+                            </button>
+                            <button class="btn-timeframe btn-fii-timeframe" data-timeframe="monthly" style="padding:4px 10px; font-size:0.75rem; border:none; border-radius:4px; cursor:pointer; font-weight:600; background:transparent; color:var(--text-sub); transition:all 0.15s ease;">
+                                📆 Monthly
+                            </button>
+                        </div>
+                    </div>
+
+                    <table class="data-table" style="font-size:0.82rem;" id="fii-dii-mini-table">
+                        <thead>
+                            <tr>
+                                <th id="th-fii-dii-period">Trading Date</th>
+                                <th class="num">FII Buy</th>
+                                <th class="num">FII Sell</th>
+                                <th class="num">FII Net (₹ Cr)</th>
+                                <th class="num">DII Buy</th>
+                                <th class="num">DII Sell</th>
+                                <th class="num">DII Net (₹ Cr)</th>
+                                <th class="num">Combined (₹ Cr)</th>
+                                <th>Institutional Bias</th>
+                                <th style="text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fii-dii-mini-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 Breadth Pillars Grid (Matching Chartink 358007) -->
+        <div class="shwas-pillars-grid" style="margin-top: 24px;">
+            
+            <!-- Pillar 1: Moving Average Participation -->
+            <div class="entry-form-card shwas-pillar-card">
+                <div class="card-header-clean">
+                    <h3 class="card-title">
+                        <span>📈</span> 1. Moving Average Participation
+                    </h3>
+                    <span class="text-muted" style="font-size:0.75rem;">Fast, Medium &amp; Secular Health</span>
+                </div>
+                <div class="shwas-meter-rows">
+                    <div class="shwas-meter-row">
+                        <div class="shwas-meter-header">
+                            <span class="shwas-meter-name">⚡ Fast Pulse (% Above 20 DMA)</span>
+                            <span class="shwas-meter-val mono" id="val-pct-20dma">68.5%</span>
+                        </div>
+                        <div class="shwas-bar-track">
+                            <div class="shwas-bar-fill bar-fill-green" id="bar-20dma" style="width: 68.5%;"></div>
+                        </div>
+                        <div class="shwas-meter-sub" id="count-20dma">342 Above vs 158 Below 20 DMA</div>
+                    </div>
+
+                    <div class="shwas-meter-row">
+                        <div class="shwas-meter-header">
+                            <span class="shwas-meter-name">🌊 Swing Base (% Above 50 DMA)</span>
+                            <span class="shwas-meter-val mono" id="val-pct-50dma">72.4%</span>
+                        </div>
+                        <div class="shwas-bar-track">
+                            <div class="shwas-bar-fill bar-fill-green" id="bar-50dma" style="width: 72.4%;"></div>
+                        </div>
+                        <div class="shwas-meter-sub" id="count-50dma">362 Above vs 138 Below 50 DMA</div>
+                    </div>
+
+                    <div class="shwas-meter-row">
+                        <div class="shwas-meter-header">
+                            <span class="shwas-meter-name">🏛️ Secular Trend (% Above 200 DMA)</span>
+                            <span class="shwas-meter-val mono" id="val-pct-200dma">64.2%</span>
+                        </div>
+                        <div class="shwas-bar-track">
+                            <div class="shwas-bar-fill bar-fill-blue" id="bar-200dma" style="width: 64.2%;"></div>
+                        </div>
+                        <div class="shwas-meter-sub" id="count-200dma">321 Above vs 179 Below 200 DMA</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pillar 2: Momentum Thrust & Velocity (MBM 2.0) -->
+            <div class="entry-form-card shwas-pillar-card">
+                <div class="card-header-clean">
+                    <h3 class="card-title">
+                        <span>🚀</span> 2. Momentum Velocity &amp; Thrust
+                    </h3>
+                    <span class="text-muted" style="font-size:0.75rem;">Chartink MBM 2.0 Engine</span>
+                </div>
+                <div class="preview-grid" style="grid-template-columns: repeat(2, 1fr); gap:12px;">
+                    <div class="preview-item">
+                        <span class="preview-label">Up 4.5%+ Today</span>
+                        <span class="preview-value mono text-win" id="stat-up-45">68</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Down 4.5%+ Today</span>
+                        <span class="preview-value mono text-loss" id="stat-down-45">18</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Up 20%+ in 5 Days</span>
+                        <span class="preview-value mono text-win" id="stat-up-20-5d">42</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Down 20%+ in 5 Days</span>
+                        <span class="preview-value mono text-loss" id="stat-down-20-5d">8</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Active Breakouts</span>
+                        <span class="preview-value mono text-win" id="stat-breakouts">35</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Breakdowns</span>
+                        <span class="preview-value mono text-loss" id="stat-breakdowns">11</span>
+                    </div>
+                    <div class="preview-item" style="grid-column: span 2;">
+                        <span class="preview-label">Stocks Above Daily VWAP</span>
+                        <span class="preview-value mono" id="stat-above-vwap">62.8% (314 stocks)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pillar 3: High/Low Universe & Proximity -->
+            <div class="entry-form-card shwas-pillar-card">
+                <div class="card-header-clean">
+                    <h3 class="card-title">
+                        <span>🏆</span> 3. 52-Week High/Low Dynamics
+                    </h3>
+                    <span class="text-muted" style="font-size:0.75rem;">Expansion &amp; Leadership Count</span>
+                </div>
+                <div class="preview-grid" style="grid-template-columns: repeat(2, 1fr); gap:12px;">
+                    <div class="preview-item">
+                        <span class="preview-label">New 52W Highs</span>
+                        <span class="preview-value mono text-win" id="stat-nh">54</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">New 52W Lows</span>
+                        <span class="preview-value mono text-loss" id="stat-nl">6</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Net NH-NL</span>
+                        <span class="preview-value mono text-win" id="stat-net-nhnl">+48</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">5DMA of Net 52WH</span>
+                        <span class="preview-value mono text-win" id="stat-5dma-nhnl">+41.2</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Within 15% of 52WH</span>
+                        <span class="preview-value mono text-win" id="stat-15-52wh">184</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Within 15% of 52WL</span>
+                        <span class="preview-value mono text-loss" id="stat-15-52wl">32</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Net 15% H-L</span>
+                        <span class="preview-value mono text-win" id="stat-net-15hl">+152</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Net 30% H-L</span>
+                        <span class="preview-value mono text-win" id="stat-net-30hl">+246</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pillar 4: Volume & RSI & Sector Advances -->
+            <div class="entry-form-card shwas-pillar-card">
+                <div class="card-header-clean">
+                    <h3 class="card-title">
+                        <span>📊</span> 4. Volume, RSI &amp; Sector Pulse
+                    </h3>
+                    <span class="text-muted" style="font-size:0.75rem;">Capital Flow &amp; Distribution</span>
+                </div>
+                <div class="preview-grid" style="grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div class="preview-item">
+                        <span class="preview-label">Positive Volume</span>
+                        <span class="preview-value mono text-win" id="stat-pos-vol">48,250 L</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Negative Volume</span>
+                        <span class="preview-value mono text-loss" id="stat-neg-vol">19,800 L</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Today vs 50SMA Vol</span>
+                        <span class="preview-value mono" id="stat-vol-vs-50">1.24x Above Avg</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">RSI Distribution</span>
+                        <span class="preview-value mono" id="stat-rsi-dist">O/S 4% | O/B 22%</span>
+                    </div>
+                </div>
+
+                <!-- Mini Sector Advances Heatmap -->
+                <span class="preview-label" style="margin-bottom:6px; display:block;">Key Sector Advances %:</span>
+                <div class="sector-heatmap-strip" id="sector-heatmap-container">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Breadth Visual Charts Section -->
+        <div class="charts-grid" style="margin-top: 24px;">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <span>📊</span> Moving Average Breadth Participation (% Universe)
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">20 DMA vs 50 DMA vs 200 DMA</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="shwas-ma-chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <span>🌊</span> Net New Highs - New Lows Trend (Net NH-NL)
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Expansion / Contraction Wave</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="shwas-nhnl-chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Market Shwas Log & History Table -->
+        <div class="settings-section" style="margin-top: 28px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                <div>
+                    <h3 class="section-title" style="margin:0;">
+                        <span>📅</span> Daily Market Shwas Breadth Log &amp; History
+                    </h3>
+                    <p class="section-desc" style="margin:2px 0 0 0;">Historical EOD record of market breath metrics to analyze regime shifts and personal trade timing.</p>
+                </div>
+                <button id="btn-open-log-shwas-modal" class="btn btn-secondary btn-sm">
+                    <span>➕ Add EOD Breadth Entry</span>
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="shwas-history-table">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col">Date</th>
+                            <th>Market Regime</th>
+                            <th class="num">Health %</th>
+                            <th class="num">FII Net (₹ Cr)</th>
+                            <th class="num">DII Net (₹ Cr)</th>
+                            <th class="num">Combined (₹ Cr)</th>
+                            <th class="num">% &gt; 20DMA</th>
+                            <th class="num">% &gt; 50DMA</th>
+                            <th class="num">% &gt; 200DMA</th>
+                            <th class="num">4.5% Ratio</th>
+                            <th class="num">Net NH-NL</th>
+                            <th class="num">Net 15% H-L</th>
+                            <th>Action Posture</th>
+                            <th>Observation Notes</th>
+                            <th class="action-col" style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shwas-history-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ TAB 4: PERFORMANCE ANALYTICS & CHARTS ═══════════════ -->
+    <section id="content-charts" class="tab-content">
+        <!-- Performance Analytics Win Rate & Core KPIs Hero Panel -->
+        <div class="stats-panel analytics-stats-hero" style="margin-bottom: 24px;">
+            <div class="stat-card" style="border-top: 3px solid #10b981;">
+                <span class="stat-label" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🏆 Win Rate</span>
+                    <span class="badge" id="analytics-win-badge" style="background:#10b981; font-size:0.7rem;">—</span>
+                </span>
+                <span class="stat-value text-win mono" id="analytics-win-rate">—</span>
+                <span class="stat-sub" id="analytics-win-count">0 Wins / 0 Losses</span>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #38bdf8;">
+                <span class="stat-label">⚡ Profit Factor</span>
+                <span class="stat-value mono text-win" id="analytics-profit-factor">—</span>
+                <span class="stat-sub" id="analytics-pf-sub">₹0 Gain / ₹0 Loss</span>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #818cf8;">
+                <span class="stat-label">⚖️ Avg Win / Avg Loss</span>
+                <span class="stat-value mono" id="analytics-payoff-ratio">—</span>
+                <span class="stat-sub" id="analytics-payoff-sub">—</span>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #f59e0b;">
+                <span class="stat-label">🎯 Expectancy / Trade</span>
+                <span class="stat-value mono text-win" id="analytics-expectancy">—</span>
+                <span class="stat-sub" id="analytics-expectancy-r">—</span>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #10b981;">
+                <span class="stat-label">🔥 Best / Worst Streak</span>
+                <span class="stat-value mono" id="analytics-streaks">—</span>
+                <span class="stat-sub" id="analytics-curr-streak">—</span>
+            </div>
+
+            <div class="stat-card" style="border-top: 3px solid #ec4899;">
+                <span class="stat-label">⏱️ Avg Holding Days</span>
+                <span class="stat-value mono" id="analytics-avg-days">—</span>
+                <span class="stat-sub" id="analytics-days-sub">—</span>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                        Portfolio Equity Curve
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Cumulative Account Equity</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="equity-curve-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/></svg>
+                        Win Rate % by Setup Strategy
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Winning Accuracy by Strategy</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="winrate-setup-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        R-Multiple Distribution
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Frequency of Outcomes in R</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="r-distribution-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/></svg>
+                        Win / Loss Outcome Distribution
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Proportion of Big Wins, Scratches &amp; Losses</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="win-loss-donut-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7.5"/><path d="M14 14.66V17c0 .55.45 1 1 1h1.5"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                        Performance by Setup Strategy
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Total Realized ₹ by Setup</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="setup-performance-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                        Cost of Mistakes Breakdown
+                    </h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Capital Lost to Execution Errors</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="mistake-chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Heatmap -->
+        <div class="calendar-heatmap-container">
+            <div class="chart-header">
+                <h3 class="card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    Daily P&amp;L Heatmap (Past 60 Days)
+                </h3>
+                <span class="text-muted" style="font-size:0.8rem;">Green = Profit, Red = Loss</span>
+            </div>
+            <div id="calendar-heatmap-grid" class="heatmap-grid"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ TAB 5: POSITION SIZER & PLANNER ═══════════════ -->
+    <section id="content-calculator" class="tab-content">
+        <div class="calc-layout">
+            <div class="entry-form-card">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/></svg>
+                    Advanced Swing Trade Planner &amp; Position Sizer
+                </h2>
+                <p class="section-desc">Plan your risk reward parameters accurately. Never oversize a position or risk more than your predefined rules.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="calc-cmp">Planned Entry Price (₹)</label>
+                        <input type="number" id="calc-cmp" class="form-input" step="0.01" min="0.01" placeholder="e.g. 1500.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="calc-stop">Stoploss Level (₹)</label>
+                        <input type="number" id="calc-stop" class="form-input" step="0.01" min="0" placeholder="e.g. 1425.00">
+                    </div>
+                </div>
+
+                <div class="calc-metrics-bar">
+                    <div class="preview-item">
+                        <span class="preview-label">1R Risk / Share</span>
+                        <span class="preview-value mono" id="calc-risk-per-share">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Stoploss %</span>
+                        <span class="preview-value mono" id="calc-sl-pct">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Current Account Equity</span>
+                        <span class="preview-value mono" id="calc-pv">—</span>
+                    </div>
+                </div>
+
+                <div class="calc-dual-panel">
+                    <!-- Method 1: Sizing by Risk % -->
+                    <div class="calc-panel">
+                        <h3 class="card-title">Sizing Method 1: By Portfolio % Risk</h3>
+                        <div class="form-group">
+                            <label class="form-label" for="calc-risk-pct">Max Account Risk %</label>
+                            <input type="number" id="calc-risk-pct" class="form-input" step="0.1" min="0.1" max="10" value="1.0" placeholder="1.0">
+                        </div>
+                        <div class="calc-results">
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Recommended Shares</span>
+                                <span class="calc-result-value mono" id="calc-qty-pct">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Position Amount</span>
+                                <span class="calc-result-value mono" id="calc-amount-pct">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Total Risk Exposure</span>
+                                <span class="calc-result-value mono" id="calc-risk-amt-pct">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Position Size % of Portfolio</span>
+                                <span class="calc-pos-size-pct" id="calc-pos-size-pct">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Method 2: Sizing by Absolute Risk ₹ -->
+                    <div class="calc-panel">
+                        <h3 class="card-title">Sizing Method 2: By Absolute Risk Amount</h3>
+                        <div class="form-group">
+                            <label class="form-label" for="calc-risk-abs">Max Allowable Loss Amount (₹)</label>
+                            <input type="number" id="calc-risk-abs" class="form-input" step="500" min="100" placeholder="e.g. 5000">
+                        </div>
+                        <div class="calc-results">
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Recommended Shares</span>
+                                <span class="calc-result-value mono" id="calc-qty-abs">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Position Amount</span>
+                                <span class="calc-result-value mono" id="calc-amount-abs">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Effective Risk %</span>
+                                <span class="calc-result-value mono" id="calc-risk-pct-abs">—</span>
+                            </div>
+                            <div class="calc-result-row">
+                                <span class="calc-result-label">Position Size % of Portfolio</span>
+                                <span class="calc-pos-size-abs" id="calc-pos-size-abs">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ TAB 6: SETTINGS & CAPITAL LEDGER ═══════════════ -->
+    <section id="content-settings" class="tab-content">
+        <div class="settings-layout">
+            <!-- Theme & View Ergonomics -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10c0 4.42-3 8-7 8a4 4 0 0 1-4-4c0-1.1.9-2 2-2h1a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-3a7 7 0 0 0-7 7"/></svg>
+                    Theme &amp; Font Sizing (Light &amp; Dark Modes)
+                </h2>
+                <p class="section-desc">Choose between crisp light/white themes or glare-free dark themes with custom text size scaling.</p>
+                <div class="form-row">
+                    <div class="form-group" style="max-width:340px;">
+                        <label class="form-label" for="theme-select-dropdown">Selected Theme</label>
+                        <select id="theme-select-dropdown" class="form-input">
+                            <optgroup label="☀️ Light &amp; White Themes">
+                                <option value="light-white">☀️ Pure White (Clean Light Mode)</option>
+                                <option value="warm-paper">📄 Warm Paper (Ivory Sepia Eye-Care)</option>
+                            </optgroup>
+                            <optgroup label="🌙 Soothing Dark Themes">
+                                <option value="slate-calm">🌙 Slate Calm (Soft Dark &amp; Sky Blue)</option>
+                                <option value="warm-amber">☕ Warm Amber (Zero Blue-Light Night Shift)</option>
+                                <option value="forest-pine">🌲 Forest Pine (Natural Green Eye-Rest)</option>
+                                <option value="midnight-navy">🌌 Midnight Navy (Deep Calm Indigo)</option>
+                                <option value="charcoal-matte">🖤 Charcoal Matte (Anti-Glare Dark Gray)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width:240px;">
+                        <label class="form-label" for="font-size-dropdown">Reading Font Size</label>
+                        <select id="font-size-dropdown" class="form-input">
+                            <option value="standard">Standard Size (15px)</option>
+                            <option value="comfortable" selected>Comfortable (16.5px)</option>
+                            <option value="large">Large / Relaxed (18px)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capital Ledger Section -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                    Capital Ledger &amp; Deposits
+                </h2>
+                <p class="section-desc">Track all capital additions and withdrawals. Your starting capital is computed from this ledger.</p>
+                <div class="table-wrapper">
+                    <table class="data-table" id="capital-ledger-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description / Memo</th>
+                                <th class="num">Amount</th>
+                                <th class="action-col" style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="capital-ledger-tbody"></tbody>
+                        <tfoot>
+                            <tr class="totals-row">
+                                <td colspan="2"><strong>Net Starting Capital</strong></td>
+                                <td class="num"><strong id="capital-total">—</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button class="btn btn-secondary btn-sm mt-md" id="btn-add-capital">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    Add Capital Entry / Deposit
+                </button>
+            </div>
+
+            <!-- Risk Management Settings -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Risk Safety Thresholds
+                </h2>
+                <div class="form-row">
+                    <div class="form-group" style="max-width:320px">
+                        <label class="form-label" for="risk-threshold">Max Total Portfolio Open Risk (%)</label>
+                        <input type="number" id="risk-threshold" class="form-input" step="0.5" min="1" max="25" value="6.0">
+                        <p class="form-hint">Warning banner appears when cumulative open risk across all open trades exceeds this %.</p>
+                    </div>
+                    <div class="form-group" style="max-width:200px">
+                        <label class="form-label" for="currency-select">Currency Symbol</label>
+                        <select id="currency-select" class="form-input">
+                            <option value="₹">₹ (INR)</option>
+                            <option value="$">$ (USD)</option>
+                            <option value="€">€ (EUR)</option>
+                            <option value="£">£ (GBP)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup & Export -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Backup, Export &amp; Restore
+                </h2>
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btn-export-xlsx">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Export Excel Workbook (.xlsx)
+                    </button>
+                    <button class="btn btn-secondary" id="btn-export-csv">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                        Export CSV
+                    </button>
+                    <button class="btn btn-secondary" id="btn-export-json">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+                        Download Full JSON Backup
+                    </button>
+                    <label class="btn btn-secondary" for="import-file-input">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Restore / Import File
+                    </label>
+                    <input type="file" id="import-file-input" accept=".xlsx,.csv,.json" class="sr-only">
+                </div>
+                <p class="form-hint mt-sm">Supports Excel (.xlsx), CSV, and JSON backup files with auto-detection.</p>
+            </div>
+
+            <!-- Demo & Data Reset -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                    Demo Data &amp; Reset
+                </h2>
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="btn-load-demo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Load Demo Swing Trades Dataset
+                    </button>
+                    <button class="btn btn-danger" id="btn-clear-data">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        Clear All Journal Data
+                    </button>
+                </div>
+                <p class="form-hint mt-sm">Demo data populates 12+ realistic swing trades with notes, R-multiples, and mistake tags for immediate preview.</p>
+            </div>
+        </div>
+    </section>
+
+</div> <!-- End of .app-layout / .container -->
+
+<!-- ═══════════════ SETUP STRATEGY STUDIO & MANAGER MODAL ═══════════════ -->
+<div id="setup-manager-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 style="display:flex; align-items:center; gap:8px;">
+                <span>🎯 Setup Strategy Studio &amp; Manager</span>
+            </h3>
+            <button class="modal-close-btn" id="btn-setup-modal-x">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 24px;">
+            <!-- Top Add Section -->
+            <div class="preview-card" style="margin-bottom: 20px; background: var(--bg-elevated); border: 1px solid var(--border-focus); padding: 18px;">
+                <h4 class="card-title" style="color: var(--accent-color); margin-bottom: 12px; font-size: 0.96rem;">
+                    ➕ Create New Strategy
+                </h4>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div style="flex: 2; min-width: 220px;">
+                        <input type="text" id="new-setup-name-input" class="form-input" placeholder="e.g. High Tight Flag, Cup &amp; Handle, 20 EMA Pullback...">
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-save-new-setup" style="white-space:nowrap; padding: 0 20px;">
+                        ➕ Add &amp; Select Strategy
+                    </button>
+                </div>
+                <p class="form-hint mt-xs" style="font-size:0.78rem; color:var(--text-sub);">
+                    ✨ New setups will be saved to your permanent library and available in all trade entries, edit dialogs, and performance charts.
+                </p>
+            </div>
+
+            <!-- Existing Setups Management & Editing Section -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <h4 class="card-title" style="margin-bottom: 0; font-size: 0.95rem;">
+                        📋 Manage &amp; Edit Existing Setup Strategies (<span id="setup-count-badge">0</span>)
+                    </h4>
+                    <input type="text" id="setup-search-filter" class="form-input" placeholder="🔍 Filter strategies..." style="width: 200px; height: 32px; font-size: 0.82rem; padding: 4px 10px;">
+                </div>
+
+                <div id="setup-manager-list" class="setup-manager-grid" style="display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top:22px; padding-top:14px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-setup-modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT SINGLE SETUP STRATEGY RENAME MODAL ═══════════════ -->
+<div id="edit-single-setup-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>✏️ Rename Setup Strategy</h3>
+            <button class="modal-close-btn" id="btn-edit-single-setup-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-single-setup-old-name">
+            <div class="form-group">
+                <label class="form-label" for="edit-single-setup-new-name">Strategy Name</label>
+                <input type="text" id="edit-single-setup-new-name" class="form-input" required placeholder="Updated strategy name...">
+                <p class="form-hint mt-xs" style="font-size:0.78rem; color:var(--text-sub);">
+                    ⚠️ Renaming this strategy will automatically update all open and closed trades that use it!
+                </p>
+            </div>
+            <div class="modal-footer" style="margin-top:20px; padding-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit-single-setup">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn-save-edit-single-setup">💾 Save &amp; Update Trades</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT OPEN TRADE MODAL ═══════════════ -->
+<div id="edit-trade-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="edit-trade-modal-title">✏️ Edit Open Trade Details</h3>
+            <button class="modal-close-btn" id="btn-edit-trade-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-trade-form">
+                <input type="hidden" id="edit-trade-id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-stock">Stock / Symbol (NSE)</label>
+                        <input type="text" id="edit-stock" class="form-input" required uppercase style="text-transform:uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-direction">Direction</label>
+                        <select id="edit-direction" class="form-input">
+                            <option value="LONG">🟢 LONG (Buy)</option>
+                            <option value="SHORT">🔴 SHORT (Sell)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-buy-date">Initial Entry Date</label>
+                        <input type="date" id="edit-buy-date" class="form-input" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-buy-price">Entry Price (₹)</label>
+                        <input type="number" id="edit-buy-price" class="form-input" step="0.05" min="0.05" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-qty">Initial Shares / Quantity</label>
+                        <input type="number" id="edit-qty" class="form-input" step="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-stoploss">Stoploss Price (₹)</label>
+                        <input type="number" id="edit-stoploss" class="form-input" step="0.05" min="0.05" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-setup">Setup / Strategy</label>
+                        <select id="edit-setup" class="form-input"></select>
+                        <input type="text" id="edit-setup-custom" class="form-input mt-sm hidden" placeholder="Type custom setup name...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-market-regime">Market Trend / Regime</label>
+                        <select id="edit-market-regime" class="form-input">
+                            <option value="Confirmed Uptrend">🟢 Confirmed Uptrend (Full Risk)</option>
+                            <option value="Uptrend Under Pressure">🟡 Uptrend Under Pressure (Half Risk)</option>
+                            <option value="Market in Correction">🔴 Market in Correction (Selective/Low Risk)</option>
+                            <option value="Rally Attempt">⚡ Rally Attempt</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-cmp">Current Market Price / CMP (₹)</label>
+                        <input type="number" id="edit-cmp" class="form-input" step="0.05" min="0.05">
+                    </div>
+                </div>
+
+                <!-- Pre-Trade Checklist in Edit Modal -->
+                <div class="checklist-container" style="margin-top: 10px;">
+                    <label class="form-label mb-sm">Pre-Trade Discipline Checklist</label>
+                    <div class="checklist-grid">
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-weekly">
+                            <span>Weekly Chart in Uptrend</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-index20">
+                            <span>Index Above 20 DMA</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-trend">
+                            <span>Sector &amp; Market in sync</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-stop">
+                            <span>Stoploss based on technical structure</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-risk">
+                            <span>Risk ≤ 1.5% of total portfolio</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="edit-chk-catalyst">
+                            <span>Volume expansion / Catalyst present</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="edit-notes">Trade Hypothesis &amp; Notes</label>
+                    <textarea id="edit-notes" class="form-input" rows="2" placeholder="Rationale, trigger candle, sector theme..."></textarea>
+                </div>
+
+                <!-- Live Recalculated Parameters Preview -->
+                <div class="preview-card" style="margin-top: 12px; background: var(--bg-elevated); border-color: var(--border-focus);">
+                    <h4 class="card-title" style="margin-bottom: 8px; font-size: 0.92rem; color: var(--accent-color);">
+                        ⚡ Updated Parameters Preview
+                    </h4>
+                    <div class="preview-grid">
+                        <div class="preview-item">
+                            <span class="preview-label">Position Amount</span>
+                            <span class="preview-value mono" id="edit-preview-amount">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Stoploss %</span>
+                            <span class="preview-value mono text-loss" id="edit-preview-sl-pct">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">1R Risk Amount</span>
+                            <span class="preview-value mono" id="edit-preview-risk-amount">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">1R Target</span>
+                            <span class="preview-value mono text-win" id="edit-preview-target1">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 18px; padding-top: 14px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-edit-trade">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-edit-trade">💾 Save Trade Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT CLOSED TRADE MODAL ═══════════════ -->
+<div id="edit-closed-trade-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="edit-closed-modal-title">✏️ Edit Closed Trade</h3>
+            <button class="modal-close-btn" id="btn-edit-closed-trade-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-closed-trade-form">
+                <input type="hidden" id="edit-closed-trade-id">
+
+                <!-- Section 1: Core Ticker & Strategy -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-stock">Stock / Symbol (NSE)</label>
+                        <input type="text" id="edit-closed-stock" class="form-input" required uppercase style="text-transform:uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-direction">Direction</label>
+                        <select id="edit-closed-direction" class="form-input">
+                            <option value="LONG">🟢 LONG (Buy)</option>
+                            <option value="SHORT">🔴 SHORT (Sell)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-setup">Setup / Strategy</label>
+                        <select id="edit-closed-setup" class="form-input"></select>
+                        <input type="text" id="edit-closed-setup-custom" class="form-input mt-sm hidden" placeholder="Type custom setup name...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-market-regime">Market Trend / Regime</label>
+                        <select id="edit-closed-market-regime" class="form-input">
+                            <option value="Confirmed Uptrend">🟢 Confirmed Uptrend</option>
+                            <option value="Uptrend Under Pressure">🟡 Uptrend Under Pressure</option>
+                            <option value="Market in Correction">🔴 Market in Correction</option>
+                            <option value="Rally Attempt">⚡ Rally Attempt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 2: Entry Parameters -->
+                <div style="background:var(--bg-sub); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:14px;">
+                    <h4 style="font-size:0.88rem; margin:0 0 10px 0; color:var(--accent-color); font-weight:750;">📥 Entry Parameters</h4>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-entry-date">Entry Date</label>
+                            <input type="date" id="edit-closed-entry-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-entry-price">Entry / Buy Price (₹)</label>
+                            <input type="number" id="edit-closed-entry-price" class="form-input" step="0.05" min="0.05" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-qty">Total Shares / Quantity</label>
+                            <input type="number" id="edit-closed-qty" class="form-input" step="1" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-stoploss">Initial Stoploss (₹)</label>
+                            <input type="number" id="edit-closed-stoploss" class="form-input" step="0.05" min="0.05" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Exit Parameters -->
+                <div style="background:var(--bg-sub); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:14px;">
+                    <h4 style="font-size:0.88rem; margin:0 0 10px 0; color:#f59e0b; font-weight:750;">📤 Exit &amp; Execution Parameters</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-exit-date">Exit / Sell Date</label>
+                            <input type="date" id="edit-closed-exit-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-exit-price">Exit / Sell Price (₹)</label>
+                            <input type="number" id="edit-closed-exit-price" class="form-input" step="0.05" min="0.05" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-closed-exit-reason">Exit Trigger / Reason</label>
+                            <select id="edit-closed-exit-reason" class="form-input">
+                                <option value="Target achieved">🎯 Target achieved</option>
+                                <option value="Trailing stoploss hit">🛡️ Trailing stoploss hit</option>
+                                <option value="Stoploss hit">🛑 Initial stoploss hit</option>
+                                <option value="Trend / EMA broken">📉 Trend / EMA broken</option>
+                                <option value="Better opportunity elsewhere">⚡ Better opportunity elsewhere</option>
+                                <option value="Time-based exit / stagnant">⏳ Time-based exit / stagnant</option>
+                                <option value="__custom__">+ Other Reason (Specify below)</option>
+                            </select>
+                            <input type="text" id="edit-closed-exit-reason-custom" class="form-input mt-sm hidden" placeholder="Type custom exit reason...">
+                        </div>
+                    </div>
+
+                    <!-- Rating & Mistakes -->
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Trade Execution Rating</label>
+                            <div id="edit-closed-star-rating" class="star-rating" style="padding-top:4px;"></div>
+                        </div>
+                        <div class="form-group" style="flex:2;">
+                            <label class="form-label">Execution Mistake Tags</label>
+                            <div class="tag-grid" id="edit-closed-mistake-tags"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Notes & Learnings -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-entry-notes">Initial Entry Hypothesis &amp; Notes</label>
+                        <textarea id="edit-closed-entry-notes" class="form-input" rows="2" placeholder="Entry trigger candle, sector catalyst..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-closed-postmortem-notes">Post-Mortem &amp; Lessons Learned</label>
+                        <textarea id="edit-closed-postmortem-notes" class="form-input" rows="2" placeholder="What went well? What execution mistakes to avoid next time?"></textarea>
+                    </div>
+                </div>
+
+                <!-- Live Recalculated Closed Trade Metrics Preview -->
+                <div class="preview-card" style="margin-top: 10px; background: var(--bg-elevated); border-color: var(--border-focus);">
+                    <h4 class="card-title" style="margin-bottom: 8px; font-size: 0.92rem; color: var(--accent-color);">
+                        ✨ Recalculated Trade Metrics
+                    </h4>
+                    <div class="preview-grid">
+                        <div class="preview-item">
+                            <span class="preview-label">Cost Basis</span>
+                            <span class="preview-value mono" id="edit-closed-preview-cost">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Total Proceeds</span>
+                            <span class="preview-value mono" id="edit-closed-preview-proceeds">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Net Realized P&amp;L</span>
+                            <span class="preview-value mono" id="edit-closed-preview-pnl">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Realized Return %</span>
+                            <span class="preview-value mono" id="edit-closed-preview-return">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">R-Multiple Achieved</span>
+                            <span class="preview-value mono" id="edit-closed-preview-r">—</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Holding Period</span>
+                            <span class="preview-value mono" id="edit-closed-preview-days">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reopen Trade Option -->
+                <div style="margin-top:14px; background:var(--bg-sub); padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--border-card);">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-main);">
+                        <input type="checkbox" id="edit-closed-reopen-chk" style="width:16px; height:16px; cursor:pointer;">
+                        <span>🔄 Reopen this trade as an active OPEN position (removes exit date &amp; price)</span>
+                    </label>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 18px; padding-top: 14px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-edit-closed-trade">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-edit-closed-trade">💾 Save Closed Trade Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ SCALE IN / ADD SHARES (PYRAMID) MODAL ═══════════════ -->
+<div id="scale-in-modal" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="scale-in-stock-title">Scale In / Add Shares (Pyramiding)</h3>
+            <button class="modal-close-btn" id="btn-scale-in-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Current Position Summary Card -->
+            <div class="preview-card" style="margin-bottom: 16px;">
+                <div class="preview-grid">
+                    <div class="preview-item">
+                        <span class="preview-label">Current Active Shares</span>
+                        <span class="preview-value mono" id="scale-current-qty">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Current Avg Price</span>
+                        <span class="preview-value mono" id="scale-current-avg-price">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Current Stoploss</span>
+                        <span class="preview-value mono text-loss" id="scale-current-sl">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Current CMP</span>
+                        <span class="preview-value mono" id="scale-current-cmp">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Shares Inputs -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="scale-qty-input">Additional Shares to Buy</label>
+                    <input type="number" id="scale-qty-input" class="form-input" step="1" min="1" required placeholder="e.g. 50">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="scale-price-input">Buy / Add Price (₹)</label>
+                    <input type="number" id="scale-price-input" class="form-input" step="0.01" min="0.01" required placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="scale-date-input">Date of Addition</label>
+                    <input type="date" id="scale-date-input" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="scale-sl-input">Updated Stoploss Level (₹) <span class="form-label-hint">Trail SL to protect profit</span></label>
+                    <input type="number" id="scale-sl-input" class="form-input" step="0.01" min="0" placeholder="New SL level">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="scale-reason-input">Reason / Catalyst for Adding</label>
+                <select id="scale-reason-input" class="form-input">
+                    <option value="Pyramiding on breakout of resistance">🚀 Pyramiding on breakout / pivot confirmation</option>
+                    <option value="Added on pullback / 20 EMA retest">📉 Added on pullback / 20 EMA bounce</option>
+                    <option value="Averaging on volume accumulation">📊 Averaging on volume accumulation</option>
+                    <option value="Catalyst / Earnings expansion">⚡ Positive catalyst / Sector momentum</option>
+                    <option value="__custom__">+ Custom reason...</option>
+                </select>
+                <input type="text" id="scale-reason-custom" class="form-input mt-sm hidden" placeholder="Enter custom scaling reason...">
+            </div>
+
+            <!-- Live Position Preview After Scaling -->
+            <div class="preview-card" style="margin-top: 14px; background: var(--bg-elevated); border-color: var(--border-focus);">
+                <h4 class="card-title" style="margin-bottom: 10px; font-size: 0.95rem; color: var(--accent-color);">
+                    ✨ Position After Addition (New Weighted Average)
+                </h4>
+                <div class="preview-grid">
+                    <div class="preview-item">
+                        <span class="preview-label">New Total Shares</span>
+                        <span class="preview-value mono" id="scale-preview-total-qty">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">New Avg Entry Price</span>
+                        <span class="preview-value mono text-win" id="scale-preview-avg-price">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">New Total Investment</span>
+                        <span class="preview-value mono" id="scale-preview-total-amount">—</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">New 1R SL %</span>
+                        <span class="preview-value mono" id="scale-preview-new-sl-pct">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-scale-in">Cancel</button>
+            <button class="btn btn-primary" id="btn-confirm-scale-in">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                Confirm Add Shares
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ CLOSE TRADE MODAL ═══════════════ -->
+<div id="close-trade-modal" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Close Trade — <span id="close-trade-stock"></span></h3>
+            <button class="modal-close-btn" id="btn-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="close-sell-date">Exit Date</label>
+                    <input type="date" id="close-sell-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="close-sell-price">Exit Price (₹)</label>
+                    <input type="number" id="close-sell-price" class="form-input" step="0.01" min="0" required placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="close-selling-reason">Exit Trigger / Reason</label>
+                <select id="close-selling-reason" class="form-input">
+                    <option value="Target achieved">🎯 Target achieved</option>
+                    <option value="Trailing stoploss hit">🛡️ Trailing stoploss hit</option>
+                    <option value="Stoploss hit">🛑 Initial stoploss hit</option>
+                    <option value="Trend / EMA broken">📉 Trend / EMA broken</option>
+                    <option value="Better opportunity elsewhere">⚡ Better opportunity elsewhere</option>
+                    <option value="Time-based exit / stagnant">⏳ Time-based exit / stagnant</option>
+                    <option value="__custom__">+ Other Reason (Specify below)</option>
+                </select>
+                <input type="text" id="close-reason-custom" class="form-input mt-sm hidden" placeholder="Type custom exit reason...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Trade Execution Rating (1 - 5 Stars)</label>
+                <div id="close-star-rating" class="star-rating"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Mistake Tags (Select any applicable)</label>
+                <div class="tag-grid" id="close-mistake-tags"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="close-remarks">Post-Mortem Review &amp; Lessons Learned</label>
+                <textarea id="close-remarks" class="form-input" rows="3" placeholder="What did you do right? What could be improved in execution?"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-close">Cancel</button>
+            <button class="btn btn-primary" id="btn-confirm-close">Confirm &amp; Close Trade</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ PARTIAL EXIT / TRIM MODAL ═══════════════ -->
+<div id="partial-exit-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 id="partial-stock-title">Trim Position (Scale Out)</h3>
+            <button class="modal-close-btn" id="btn-partial-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="section-desc" id="partial-available-qty"></p>
+            <div class="form-group">
+                <label class="form-label" for="partial-qty-input">Shares to Sell</label>
+                <input type="number" id="partial-qty-input" class="form-input" step="1" min="1" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="partial-price-input">Exit Price (₹)</label>
+                <input type="number" id="partial-price-input" class="form-input" step="0.01" min="0.01" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="partial-date-input">Exit Date</label>
+                <input type="date" id="partial-date-input" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="partial-reason-input">Reason</label>
+                <input type="text" id="partial-reason-input" class="form-input" value="Booked partial profit at 2R">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-partial">Cancel</button>
+            <button class="btn btn-primary" id="btn-confirm-partial">Trim Shares</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ TRADE DOSSIER & POST-MORTEM MODAL ═══════════════ -->
+<div id="trade-dossier-modal" class="modal-overlay hidden">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <h3 id="dossier-title">Trade Dossier</h3>
+            <button class="modal-close-btn" id="btn-dossier-x">&times;</button>
+        </div>
+        <div class="modal-body" id="dossier-content"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btn-dossier-close">Close Dossier</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ ADD CAPITAL MODAL ═══════════════ -->
+<div id="add-capital-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>Add Capital Entry</h3>
+            <button class="modal-close-btn" id="btn-capital-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label" for="capital-date">Date</label>
+                <input type="date" id="capital-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="capital-desc">Description / Memo</label>
+                <input type="text" id="capital-desc" class="form-input" required placeholder="e.g. Additional Deposit, Starting Funds...">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="capital-amount">Amount (₹)</label>
+                <input type="number" id="capital-amount" class="form-input" step="1000" required placeholder="Positive = Deposit, Negative = Withdrawal">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-capital">Cancel</button>
+            <button class="btn btn-primary" id="btn-confirm-capital">Save Entry</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ IMAGE LIGHTBOX MODAL ═══════════════ -->
+<div id="image-lightbox-modal" class="modal-overlay hidden">
+    <div style="position:relative; max-width:90vw; max-height:90vh; display:flex; justify-content:center; align-items:center;">
+        <button class="modal-close-btn" id="btn-lightbox-x" style="position:absolute; top:-34px; right:0; color:#fff; font-size:2rem;">&times;</button>
+        <img id="lightbox-img" src="" alt="Enlarged Chart" style="max-width:100%; max-height:85vh; border-radius:12px; border:1px solid #3b82f6; box-shadow:0 12px 50px rgba(0,0,0,0.85);">
+    </div>
+</div>
+
+<!-- ═══════════════ MARKET SHWAS BREADTH LOG MODAL ═══════════════ -->
+<div id="shwas-log-modal" class="modal-overlay hidden">
+    <div class="modal" style="max-width:620px;">
+        <div class="modal-header">
+            <h3>🫁 Log Daily Market Shwas Breadth</h3>
+            <button class="modal-close-btn" id="btn-shwas-modal-x">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="section-desc">Record End-of-Day (EOD) market breath metrics from Chartink #358007 to track market health over time.</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-date">Date</label>
+                    <input type="date" id="shwas-input-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-regime">Market Trend / Regime</label>
+                    <select id="shwas-input-regime" class="form-input">
+                        <option value="Confirmed Uptrend">🟢 Confirmed Uptrend (Rally)</option>
+                        <option value="Uptrend Under Pressure">🟡 Uptrend Under Pressure (Selective)</option>
+                        <option value="Market in Correction">🔴 Market in Correction (Risk-Off)</option>
+                        <option value="Rally Attempt">⚪ Rally Attempt (Early Stage)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Moving Averages -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-20dma">% &gt; 20 DMA</label>
+                    <input type="number" id="shwas-input-20dma" class="form-input" step="0.1" min="0" max="100" placeholder="e.g. 68.5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-50dma">% &gt; 50 DMA</label>
+                    <input type="number" id="shwas-input-50dma" class="form-input" step="0.1" min="0" max="100" placeholder="e.g. 72.4">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-200dma">% &gt; 200 DMA</label>
+                    <input type="number" id="shwas-input-200dma" class="form-input" step="0.1" min="0" max="100" placeholder="e.g. 64.2">
+                </div>
+            </div>
+
+            <!-- Momentum 4.5% & Velocity -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-up45">Up 4.5%+ Count</label>
+                    <input type="number" id="shwas-input-up45" class="form-input" step="1" min="0" placeholder="e.g. 68">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-down45">Down 4.5%+ Count</label>
+                    <input type="number" id="shwas-input-down45" class="form-input" step="1" min="0" placeholder="e.g. 18">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-thrust-ratio">4.5% Thrust Ratio</label>
+                    <input type="number" id="shwas-input-thrust-ratio" class="form-input" step="0.1" placeholder="e.g. 3.8">
+                </div>
+            </div>
+
+            <!-- 52W Highs vs Lows -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-nh">New 52W Highs</label>
+                    <input type="number" id="shwas-input-nh" class="form-input" step="1" min="0" placeholder="e.g. 54">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-nl">New 52W Lows</label>
+                    <input type="number" id="shwas-input-nl" class="form-input" step="1" min="0" placeholder="e.g. 6">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shwas-input-net15">Net 15% H-L</label>
+                    <input type="number" id="shwas-input-net15" class="form-input" step="1" placeholder="e.g. 152">
+                </div>
+            </div>
+
+            <!-- FII & DII Cash Flow Volume in Crores -->
+            <div style="background:var(--bg-input); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:14px;">
+                <label class="form-label mb-xs" style="font-weight:700; color:var(--text-main);">🏛️ FII &amp; DII Institutional Cash Flow (₹ in Crores)</label>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-fii-net">FII Net (₹ Cr)</label>
+                        <input type="number" id="shwas-input-fii-net" class="form-input" step="0.01" placeholder="e.g. 2235.40 (or -1500)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-dii-net">DII Net (₹ Cr)</label>
+                        <input type="number" id="shwas-input-dii-net" class="form-input" step="0.01" placeholder="e.g. 2560.40">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-fii-buy" style="font-size:0.75rem;">FII Buy (₹ Cr)</label>
+                        <input type="number" id="shwas-input-fii-buy" class="form-input" step="0.01" placeholder="e.g. 12450.60">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-fii-sell" style="font-size:0.75rem;">FII Sell (₹ Cr)</label>
+                        <input type="number" id="shwas-input-fii-sell" class="form-input" step="0.01" placeholder="e.g. 10215.20">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-dii-buy" style="font-size:0.75rem;">DII Buy (₹ Cr)</label>
+                        <input type="number" id="shwas-input-dii-buy" class="form-input" step="0.01" placeholder="e.g. 14180.50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="shwas-input-dii-sell" style="font-size:0.75rem;">DII Sell (₹ Cr)</label>
+                        <input type="number" id="shwas-input-dii-sell" class="form-input" step="0.01" placeholder="e.g. 11620.10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="shwas-input-notes">Breadth Observations &amp; Market Notes</label>
+                <textarea id="shwas-input-notes" class="form-input" rows="2" placeholder="e.g. Broad participation led by Auto & Defense, leaders breaking out on heavy volume..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-shwas-modal">Cancel</button>
+            <button class="btn btn-primary" id="btn-save-shwas-modal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                Save Breadth Entry
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ FII / DII CASH ENTRY & EDIT MODAL ═══════════════ -->
+<div id="modal-fii-dii-direct-edit" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.3rem;">📊</span>
+                <div>
+                    <h3 class="modal-title" style="margin:0; font-size:1.1rem;">FII &amp; DII Cash Market Import &amp; Entry</h3>
+                    <p style="margin:0; font-size:0.75rem; color:var(--text-sub);">Source: StockMojo Summary (https://stockmojo.in/fii-dii-data-summary)</p>
+                </div>
+            </div>
+            <button class="modal-close" id="btn-close-fii-direct-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Date Selector with Market Closed Warning -->
+            <div class="form-group mb-sm">
+                <label class="form-label" for="fii-direct-input-date" style="font-weight:700;">Trading Date</label>
+                <input type="date" id="fii-direct-input-date" class="form-input">
+                <div id="fii-direct-date-warning" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:4px; font-weight:600;"></div>
+            </div>
+
+            <!-- Quick Paste Box from StockMojo -->
+            <div style="background:var(--bg-sub); padding:10px 12px; border-radius:var(--radius-md); border:1px dashed var(--border-card); margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <label class="form-label" style="margin:0; font-size:0.78rem; font-weight:700; color:var(--text-main);">📋 Quick Paste from StockMojo Summary</label>
+                        <a href="https://stockmojo.in/fii-dii-data-summary" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem; color:var(--accent-primary); text-decoration:underline;">Open StockMojo ↗</a>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-xs" id="btn-parse-fii-paste" style="padding:3px 10px; font-size:0.72rem; font-weight:700;">⚡ Auto-Parse</button>
+                </div>
+                <input type="text" id="fii-direct-paste-input" class="form-input" style="font-size:0.8rem; padding:6px 10px;" placeholder="Paste text or table copied from stockmojo.in/fii-dii-data-summary...">
+            </div>
+
+            <!-- FII Card Section -->
+            <div style="background:var(--bg-input); padding:12px; border-radius:var(--radius-md); border-left:3px solid #38bdf8; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-weight:750; font-size:0.85rem; color:var(--text-main);">🏛️ FII / FPI Cash Activity</span>
+                    <span id="fii-direct-calc-badge" class="badge" style="font-size:0.75rem; padding:2px 8px; background:rgba(56,189,248,0.18); color:#38bdf8;">Net: ₹0.00 Cr</span>
+                </div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <div class="form-group">
+                        <label class="form-label" for="fii-direct-buy" style="font-size:0.75rem;">Gross Buy (₹ Cr)</label>
+                        <input type="number" id="fii-direct-buy" class="form-input" step="0.01" placeholder="e.g. 11984.45">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fii-direct-sell" style="font-size:0.75rem;">Gross Sell (₹ Cr)</label>
+                        <input type="number" id="fii-direct-sell" class="form-input" step="0.01" placeholder="e.g. 12527.16">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fii-direct-net" style="font-size:0.75rem;">Net Value (₹ Cr)</label>
+                        <input type="number" id="fii-direct-net" class="form-input" step="0.01" placeholder="Auto: Buy - Sell">
+                    </div>
+                </div>
+            </div>
+
+            <!-- DII Card Section -->
+            <div style="background:var(--bg-input); padding:12px; border-radius:var(--radius-md); border-left:3px solid #10b981; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-weight:750; font-size:0.85rem; color:var(--text-main);">🏢 DII Cash Activity</span>
+                    <span id="dii-direct-calc-badge" class="badge" style="font-size:0.75rem; padding:2px 8px; background:rgba(16,185,129,0.18); color:#10b981;">Net: ₹0.00 Cr</span>
+                </div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <div class="form-group">
+                        <label class="form-label" for="dii-direct-buy" style="font-size:0.75rem;">Gross Buy (₹ Cr)</label>
+                        <input type="number" id="dii-direct-buy" class="form-input" step="0.01" placeholder="e.g. 14180.50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dii-direct-sell" style="font-size:0.75rem;">Gross Sell (₹ Cr)</label>
+                        <input type="number" id="dii-direct-sell" class="form-input" step="0.01" placeholder="e.g. 12056.36">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dii-direct-net" style="font-size:0.75rem;">Net Value (₹ Cr)</label>
+                        <input type="number" id="dii-direct-net" class="form-input" step="0.01" placeholder="Auto: Buy - Sell">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Combined Net Preview -->
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-sub); padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--border-card);">
+                <span style="font-weight:700; font-size:0.85rem; color:var(--text-main);">⚖️ Combined Cash Net Flow:</span>
+                <span id="fii-direct-combined-preview" class="stat-value mono" style="font-size:1.1rem; font-weight:800;">₹0.00 Cr</span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btn-cancel-fii-direct-modal">Cancel</button>
+            <button class="btn btn-primary" id="btn-save-fii-direct-modal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                Save FII/DII Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ REALTIME CLOUD DATABASE SYNC MODAL ═══════════════ -->
+<div id="modal-cloud-sync" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.4rem;">☁️</span>
+                <div>
+                    <h3 style="margin:0; font-size:1.15rem;">Realtime Database &amp; Multi-Device Cloud Sync</h3>
+                    <p style="margin:0; font-size:0.75rem; color:var(--text-sub);">Instant bi-directional live sync between Desktop PC, Laptop &amp; Mobile App</p>
+                </div>
+            </div>
+            <button class="modal-close-btn" id="btn-close-cloud-sync-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Sync Status Banner -->
+            <div id="cloud-sync-banner" style="background:var(--bg-sub); padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="cloud-status-dot offline" id="cloud-modal-status-dot"></span>
+                    <div>
+                        <div style="font-weight:750; font-size:0.9rem;" id="cloud-modal-status-title">Status: Local Offline Storage</div>
+                        <div style="font-size:0.75rem; color:var(--text-sub);" id="cloud-modal-status-desc">All data saved locally on this browser. Connect Firebase for live cross-device sync.</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-xs" id="btn-cloud-test-conn" style="padding:4px 10px; font-weight:700;">⚡ Test Connection</button>
+                </div>
+            </div>
+
+            <!-- Configuration Form -->
+            <div class="form-row">
+                <div class="form-group flex-2">
+                    <label class="form-label" for="cloud-firebase-url" style="font-weight:700;">
+                        Firebase Realtime Database URL <span class="form-label-hint">https://your-app-default-rtdb.firebaseio.com</span>
+                    </label>
+                    <input type="text" id="cloud-firebase-url" class="form-input" placeholder="e.g. https://my-swing-journal-rtdb.firebaseio.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cloud-sync-key" style="font-weight:700;">
+                        Sync Vault Key / PIN <span class="form-label-hint">Shared on all devices</span>
+                    </label>
+                    <input type="text" id="cloud-sync-key" class="form-input" placeholder="e.g. trader_vault_2026">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="cloud-firebase-api-key" style="font-size:0.8rem;">
+                    Firebase API Key (Optional for REST auth rules)
+                </label>
+                <input type="text" id="cloud-firebase-api-key" class="form-input" style="font-size:0.8rem;" placeholder="e.g. AIzaSy...">
+            </div>
+
+            <!-- Auto-sync toggle & Options -->
+            <div style="background:var(--bg-elevated); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--text-main); margin:0;">
+                            <input type="checkbox" id="cloud-auto-sync-toggle" style="width:17px; height:17px;" checked>
+                            <span>⚡ Enable Live Bi-directional Auto-Sync</span>
+                        </label>
+                        <p style="margin:2px 0 0 25px; font-size:0.74rem; color:var(--text-sub);">Automatically pushes your trades &amp; listens in real-time for updates made on your phone.</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-cloud-push-now" title="Push all current local data to Firebase">⬆️ Push to Cloud</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-cloud-pull-now" title="Download latest data from Firebase">⬇️ Pull from Cloud</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Free Setup Guide Accordion -->
+            <details style="background:var(--bg-input); padding:10px 14px; border-radius:var(--radius-md); border:1px dashed var(--border-card); font-size:0.82rem;">
+                <summary style="font-weight:700; cursor:pointer; color:var(--accent-primary);">📘 How to set up your 100% Free Firebase Realtime DB in 2 minutes (Click to expand)</summary>
+                <ol style="margin:10px 0 0 18px; padding:0; line-height:1.6; color:var(--text-sub);">
+                    <li>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary); text-decoration:underline;">console.firebase.google.com</a> and click <strong>"Create a project"</strong> (Free tier / Spark plan).</li>
+                    <li>In the left sidebar under <strong>Build</strong>, click <strong>"Realtime Database"</strong> &rarr; <strong>"Create Database"</strong>.</li>
+                    <li>Select <strong>"Start in test mode"</strong> (or set read/write rules to <code>true</code>) and choose any location.</li>
+                    <li>Copy your database URL (e.g. <code>https://my-app-rtdb.asia-southeast1.firebasedatabase.app</code> or <code>https://my-app.firebaseio.com</code>) and paste it into the box above.</li>
+                    <li>Set any secret <strong>Sync Vault Key</strong> (e.g. <code>my_journal_vault</code>). Enter the same URL &amp; Vault Key on your mobile phone to enjoy live sync!</li>
+                </ol>
+            </details>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+            <button type="button" class="btn btn-ghost" id="btn-cloud-clear-config" style="color:#ef4444; font-size:0.8rem;">Disconnect / Reset</button>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-secondary" id="btn-close-cloud-sync">Close</button>
+                <button type="button" class="btn btn-primary" id="btn-save-cloud-config">💾 Save &amp; Connect Cloud</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ MOBILE BOTTOM NAVIGATION BAR ═══════════════ -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="mob-nav-btn active" data-tab="entry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+        <span>New</span>
+    </button>
+    <button class="mob-nav-btn" data-tab="open">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>Open</span>
+        <span class="mob-badge" id="mob-open-count">0</span>
+    </button>
+    <button class="mob-nav-btn" data-tab="closed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Closed</span>
+    </button>
+    <button class="mob-nav-btn" data-tab="shwas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/><circle cx="12" cy="12" r="2"/></svg>
+        <span>Shwas</span>
+        <span class="mob-badge" id="mob-shwas-badge" style="background:#10b981;">76%</span>
+    </button>
+    <button class="mob-nav-btn" data-tab="charts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        <span>Analytics</span>
+    </button>
+    <button class="mob-nav-btn" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>More</span>
+    </button>
+</nav>
+
+<!-- ═══════════════ TOAST NOTIFICATIONS ═══════════════ -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

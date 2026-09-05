@@ -1,0 +1,24 @@
+﻿{
+  name: Swing Trading Journal & Terminal Pro,
+  short_name: Swing Journal,
+  description: Professional Equity Swing Trading Journal with Realtime Cloud Sync, Position Sizing, Risk Management, and Market Shwas Analytics,
+  start_url: ./index.html,
+  display: standalone,
+  background_color: #0f172a,
+  theme_color: #0f172a,
+  orientation: any,
+  icons: [
+    {
+      src: data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230f172a'/%3E%3Cpath d='M80 400h352M120 340l80-90 70 50 120-140' stroke='%2338bdf8' stroke-width='36' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='390' cy='160' r='24' fill='%2310b981'/%3E%3C/svg%3E,
+      sizes: 192x192,
+      type: image/svg+xml,
+      purpose: any maskable
+    },
+    {
+      src: data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230f172a'/%3E%3Cpath d='M80 400h352M120 340l80-90 70 50 120-140' stroke='%2338bdf8' stroke-width='36' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='390' cy='160' r='24' fill='%2310b981'/%3E%3C/svg%3E,
+      sizes: 512x512,
+      type: image/svg+xml,
+      purpose: any maskable
+    }
+  ]
+}
