@@ -221,17 +221,16 @@
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 3.5 REALTIME CLOUD DATABASE ENGINE (FIREBASE SYNC)
+    // 3.5 1-STEP REALTIME CLOUD DATABASE ENGINE
     // ─────────────────────────────────────────────────────────────
-    const CLOUD_STORAGE_KEY = 'swing_journal_cloud_config_v1';
+    const CLOUD_STORAGE_KEY = 'swing_journal_cloud_config_v2';
     let cloudDbRef = null;
     let isCloudPushing = false;
     let cloudSyncDebounceTimer = null;
+    let cloudPollInterval = null;
 
     let cloudConfig = {
-        firebaseUrl: '',
-        syncKey: '',
-        apiKey: '',
+        syncUrl: '',
         autoSync: true
     };
 
@@ -240,6 +239,15 @@
             const raw = localStorage.getItem(CLOUD_STORAGE_KEY);
             if (raw) {
                 cloudConfig = Object.assign(cloudConfig, JSON.parse(raw));
+            } else {
+                // Check legacy key
+                const legacy = localStorage.getItem('swing_journal_cloud_config_v1');
+                if (legacy) {
+                    const parsed = JSON.parse(legacy);
+                    if (parsed.firebaseUrl) {
+                        cloudConfig.syncUrl = parsed.firebaseUrl;
+                    }
+                }
             }
         } catch (e) {}
     }
@@ -268,58 +276,93 @@
         if (status === 'online') {
             if (text) text.textContent = 'Cloud Synced';
             if (modalTitle) modalTitle.textContent = '🟢 Status: Realtime Cloud Connected';
-            if (modalDesc) modalDesc.textContent = message || `Live sync active on vault "${cloudConfig.syncKey}". Changes sync instantly across all devices.`;
+            if (modalDesc) modalDesc.textContent = message || 'Live sync active. Changes sync instantly across all devices.';
         } else if (status === 'syncing') {
             if (text) text.textContent = 'Syncing...';
             if (modalTitle) modalTitle.textContent = '🟡 Status: Syncing Data...';
             if (modalDesc) modalDesc.textContent = message || 'Transferring data between device and cloud database...';
         } else {
-            if (text) text.textContent = cloudConfig.firebaseUrl ? 'Cloud Offline' : 'Cloud Sync';
-            if (modalTitle) modalTitle.textContent = '⚪ Status: Local Offline Storage';
-            if (modalDesc) modalDesc.textContent = message || 'All data saved locally on this browser. Connect Firebase for live cross-device sync.';
+            if (text) text.textContent = cloudConfig.syncUrl ? 'Cloud Offline' : 'Cloud Sync';
+            if (modalTitle) modalTitle.textContent = '⚪ Status: Local Storage Only';
+            if (modalDesc) modalDesc.textContent = message || 'All trades are stored locally. Paste a URL to enable instant live sync.';
         }
     }
 
-    function getCleanFirebaseUrl(rawUrl) {
-        if (!rawUrl) return '';
-        let url = rawUrl.trim().replace(/\/+$/, '');
+    function getNormalizedSyncEndpoint(rawUrl) {
+        if (!rawUrl) return { restUrl: '', isFirebase: false, firebaseUrl: '', firebasePath: 'journal_data' };
+        let url = rawUrl.trim();
         if (!/^https?:\/\//i.test(url)) {
             url = 'https://' + url;
         }
-        return url;
+
+        const isFirebase = /firebaseio\.com|firebasedatabase\.app/i.test(url);
+        if (isFirebase) {
+            // Normalize Firebase URL: ensure it points to a .json endpoint
+            let clean = url.replace(/\/+$/, '');
+            if (!clean.endsWith('.json')) {
+                // If it's just the root domain, e.g. https://my-app.firebaseio.com -> append /journal_data.json
+                const pathParts = clean.split('://')[1].split('/');
+                if (pathParts.length === 1) {
+                    clean += '/journal_data.json';
+                } else {
+                    clean += '.json';
+                }
+            }
+            // Extract root database URL and path for Firebase SDK
+            const urlObj = new URL(clean);
+            const rootDomain = `${urlObj.protocol}//${urlObj.host}`;
+            const pathName = urlObj.pathname.replace(/^\/+/, '').replace(/\.json$/i, '') || 'journal_data';
+
+            return {
+                restUrl: clean,
+                isFirebase: true,
+                firebaseUrl: rootDomain,
+                firebasePath: pathName
+            };
+        }
+
+        // Generic JSON Endpoint (e.g. npoint.io, jsonbin.io, worker)
+        return {
+            restUrl: url,
+            isFirebase: false,
+            firebaseUrl: '',
+            firebasePath: ''
+        };
     }
 
     function initRealtimeCloudSync() {
         loadCloudConfig();
-        updateCloudStatusUI(cloudConfig.firebaseUrl && cloudConfig.syncKey ? 'syncing' : 'offline');
+        if (cloudPollInterval) {
+            clearInterval(cloudPollInterval);
+            cloudPollInterval = null;
+        }
 
-        if (!cloudConfig.firebaseUrl || !cloudConfig.syncKey) {
+        if (!cloudConfig.syncUrl) {
             updateCloudStatusUI('offline');
             return;
         }
 
-        const firebaseUrl = getCleanFirebaseUrl(cloudConfig.firebaseUrl);
-        const syncKey = encodeURIComponent(cloudConfig.syncKey.trim());
+        const endpoint = getNormalizedSyncEndpoint(cloudConfig.syncUrl);
+        updateCloudStatusUI('syncing', 'Connecting to Cloud Database...');
 
         try {
-            // If official Firebase SDK is present, use Firebase Database Compat
-            if (window.firebase && typeof window.firebase.initializeApp === 'function') {
+            // If Firebase URL and SDK is present, initialize Realtime listener
+            if (endpoint.isFirebase && window.firebase && typeof window.firebase.initializeApp === 'function') {
                 try {
                     let app;
                     const existingApps = firebase.apps || [];
                     if (existingApps.length === 0) {
                         app = firebase.initializeApp({
-                            databaseURL: firebaseUrl,
-                            apiKey: cloudConfig.apiKey || undefined
+                            databaseURL: endpoint.firebaseUrl
                         });
                     } else {
                         app = existingApps[0];
                     }
 
                     const db = firebase.database(app);
-                    cloudDbRef = db.ref(`journals/${syncKey}/data`);
+                    cloudDbRef = db.ref(endpoint.firebasePath);
 
-                    // Live bi-directional listener
+                    // Live real-time listener
                     cloudDbRef.on('value', (snapshot) => {
                         if (isCloudPushing) return;
                         const remoteData = snapshot.val();
@@ -349,62 +392,82 @@
                                 renderAll();
                                 updateCloudStatusUI('online', `Live synchronized from cloud (${new Date(remoteMod).toLocaleTimeString()}).`);
                             }
-                        } else if (!remoteData) {
-                            // First time room setup: push local state to cloud
+                        } else if (!remoteData && state.trades && state.trades.length > 0) {
                             pushStateToCloud(false);
                         }
                         updateCloudStatusUI('online');
                     }, (err) => {
-                        console.warn('Firebase sync listener error:', err);
-                        fallbackRestRealtimeSync(firebaseUrl, syncKey);
+                        console.warn('Firebase SDK listener error, falling back to REST poll:', err);
+                        startRestPolling(endpoint.restUrl);
                     });
 
                     updateCloudStatusUI('online');
                     return;
                 } catch (sdkErr) {
-                    console.warn('Firebase SDK init error, using resilient REST fallback:', sdkErr);
+                    console.warn('Firebase SDK initialization notice:', sdkErr);
                 }
             }
 
-            // Resilient REST fallback
-            fallbackRestRealtimeSync(firebaseUrl, syncKey);
+            // Universal REST sync & polling
+            startRestPolling(endpoint.restUrl);
         } catch (err) {
             console.error('initRealtimeCloudSync error:', err);
-            updateCloudStatusUI('offline', `Sync error: ${err.message}`);
+            updateCloudStatusUI('offline', `Connection error: ${err.message}`);
         }
     }
 
-    async function fallbackRestRealtimeSync(firebaseUrl, syncKey) {
+    function startRestPolling(restUrl) {
+        pullFromRestUrl(restUrl, false);
+        // Periodic background poll every 4 seconds for non-SDK or mobile devices
+        cloudPollInterval = setInterval(() => {
+            if (!isCloudPushing && cloudConfig.autoSync) {
+                pullFromRestUrl(restUrl, false);
+            }
+        }, 4000);
+    }
+
+    async function pullFromRestUrl(restUrl, isManual = false) {
         try {
-            const url = `${firebaseUrl}/journals/${syncKey}/data.json`;
-            const res = await fetch(url);
+            const res = await fetch(restUrl);
             if (res.ok) {
                 const remoteData = await res.json();
-                if (remoteData && remoteData.trades) {
+                if (remoteData && Array.isArray(remoteData.trades)) {
                     const localMod = state.lastModified || 0;
                     const remoteMod = remoteData.lastModified || 0;
-                    if (remoteMod > localMod) {
+                    if (remoteMod > localMod || isManual) {
                         state.trades = remoteData.trades || [];
                         state.capitalLedger = remoteData.capitalLedger || [];
                         state.settings = Object.assign({}, state.settings, remoteData.settings || {});
                         state.customSetups = remoteData.customSetups || state.customSetups;
                         state.customMistakes = remoteData.customMistakes || state.customMistakes;
                         state.marketShwas = remoteData.marketShwas || state.marketShwas;
-                        state.lastModified = remoteMod;
+                        state.lastModified = remoteMod || Date.now();
                         saveState(false);
                         renderAll();
                     }
+                    updateCloudStatusUI('online');
+                    if (isManual) showToast(`✅ Downloaded ${state.trades.length} trades from Cloud!`, 'success');
+                    return true;
+                } else if (!remoteData || !remoteData.trades) {
+                    // Empty cloud DB: push current trades to it
+                    if (state.trades.length > 0) {
+                        await pushStateToCloud(false);
+                    }
+                    updateCloudStatusUI('online');
+                    return true;
                 }
-                updateCloudStatusUI('online', 'Connected via Firebase REST API.');
+            } else {
+                updateCloudStatusUI('offline', `Server replied with HTTP ${res.status}`);
             }
         } catch (e) {
-            updateCloudStatusUI('offline', 'Could not reach Firebase REST endpoint.');
+            updateCloudStatusUI('offline', 'Could not reach database endpoint.');
         }
+        return false;
     }
 
     async function pushStateToCloud(isManual = false) {
-        if (!cloudConfig.firebaseUrl || !cloudConfig.syncKey) {
-            if (isManual) showToast('Please enter Firebase URL & Sync Vault Key in Cloud Settings first.', 'warning');
+        if (!cloudConfig.syncUrl) {
+            if (isManual) showToast('Please paste a Cloud Database URL first.', 'warning');
             return false;
         }
 
@@ -423,13 +486,12 @@
         };
 
         try {
+            const endpoint = getNormalizedSyncEndpoint(cloudConfig.syncUrl);
+
             if (cloudDbRef) {
                 await cloudDbRef.set(payload);
             } else {
-                const firebaseUrl = getCleanFirebaseUrl(cloudConfig.firebaseUrl);
-                const syncKey = encodeURIComponent(cloudConfig.syncKey.trim());
-                const url = `${firebaseUrl}/journals/${syncKey}/data.json`;
-                const res = await fetch(url, {
+                const res = await fetch(endpoint.restUrl, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -439,32 +501,32 @@
 
             isCloudPushing = false;
             updateCloudStatusUI('online', `Last synced: ${new Date().toLocaleTimeString()}`);
-            if (isManual) showToast('✅ Successfully pushed all journal data to Cloud Database!', 'success');
+            if (isManual) showToast('✅ Successfully saved to Cloud Database!', 'success');
             return true;
         } catch (err) {
             isCloudPushing = false;
             updateCloudStatusUI('offline', `Push failed: ${err.message}`);
-            if (isManual) showToast(`❌ Cloud push failed: ${err.message}`, 'error');
+            if (isManual) showToast(`❌ Cloud sync error: ${err.message}`, 'error');
             return false;
         }
     }
 
     async function pullStateFromCloud(isManual = false) {
-        if (!cloudConfig.firebaseUrl || !cloudConfig.syncKey) {
-            if (isManual) showToast('Please configure Firebase URL & Sync Key first.', 'warning');
+        if (!cloudConfig.syncUrl) {
+            if (isManual) showToast('Please paste a Cloud Database URL first.', 'warning');
             return false;
         }
 
         updateCloudStatusUI('syncing', 'Downloading data from cloud...');
+        const endpoint = getNormalizedSyncEndpoint(cloudConfig.syncUrl);
+
         try {
             let remoteData = null;
             if (cloudDbRef) {
                 const snap = await cloudDbRef.once('value');
                 remoteData = snap.val();
             } else {
-                const firebaseUrl = getCleanFirebaseUrl(cloudConfig.firebaseUrl);
-                const syncKey = encodeURIComponent(cloudConfig.syncKey.trim());
-                const res = await fetch(`${firebaseUrl}/journals/${syncKey}/data.json`);
+                const res = await fetch(endpoint.restUrl);
                 if (res.ok) remoteData = await res.json();
             }
 
@@ -483,12 +545,12 @@
                 if (isManual) showToast(`✅ Downloaded latest data from Cloud (${state.trades.length} trades)!`, 'success');
                 return true;
             } else {
-                if (isManual) showToast('ℹ️ No data found in this Cloud Vault yet. Pushing current data...', 'info');
+                if (isManual) showToast('ℹ️ Cloud database is new/empty. Pushing current trades...', 'info');
                 return await pushStateToCloud(isManual);
             }
         } catch (err) {
             updateCloudStatusUI('offline', `Pull failed: ${err.message}`);
-            if (isManual) showToast(`❌ Cloud pull error: ${err.message}`, 'error');
+            if (isManual) showToast(`❌ Cloud download error: ${err.message}`, 'error');
             return false;
         }
     }
@@ -500,22 +562,19 @@
         const btnClose = document.getElementById('btn-close-cloud-sync');
         const btnSave = document.getElementById('btn-save-cloud-config');
         const btnTest = document.getElementById('btn-cloud-test-conn');
+        const btnPasteClip = document.getElementById('btn-cloud-paste-clip');
         const btnPush = document.getElementById('btn-cloud-push-now');
         const btnPull = document.getElementById('btn-cloud-pull-now');
         const btnClear = document.getElementById('btn-cloud-clear-config');
 
         const inputUrl = document.getElementById('cloud-firebase-url');
-        const inputKey = document.getElementById('cloud-sync-key');
-        const inputApiKey = document.getElementById('cloud-firebase-api-key');
         const toggleAuto = document.getElementById('cloud-auto-sync-toggle');
 
         function openModal() {
             loadCloudConfig();
-            if (inputUrl) inputUrl.value = cloudConfig.firebaseUrl || '';
-            if (inputKey) inputKey.value = cloudConfig.syncKey || '';
-            if (inputApiKey) inputApiKey.value = cloudConfig.apiKey || '';
+            if (inputUrl) inputUrl.value = cloudConfig.syncUrl || '';
             if (toggleAuto) toggleAuto.checked = cloudConfig.autoSync !== false;
-            updateCloudStatusUI(cloudConfig.firebaseUrl && cloudConfig.syncKey ? 'online' : 'offline');
+            updateCloudStatusUI(cloudConfig.syncUrl ? 'online' : 'offline');
             modal?.classList.remove('hidden');
         }
 
@@ -530,58 +589,78 @@
             if (e.target === modal) hideModal();
         });
 
-        btnSave?.addEventListener('click', () => {
+        // 1-Click Clipboard Paste
+        btnPasteClip?.addEventListener('click', async () => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
+                        inputUrl.value = text.trim();
+                        showToast('📋 URL pasted from clipboard!', 'info');
+                    } else {
+                        showToast('Clipboard is empty. Please paste your URL manually.', 'warning');
+                    }
+                } else {
+                    inputUrl.focus();
+                    showToast('Please paste your URL into the box (Ctrl+V / Long press).', 'info');
+                }
+            } catch (err) {
+                inputUrl.focus();
+                showToast('Please paste your URL into the box.', 'info');
+            }
+        });
+
+        // 1-Step Connect & Sync Button
+        btnSave?.addEventListener('click', async () => {
             const url = inputUrl?.value?.trim() || '';
-            const key = inputKey?.value?.trim() || '';
-            const apiKey = inputApiKey?.value?.trim() || '';
             const autoSync = toggleAuto?.checked !== false;
 
-            if (!url && key) {
-                showToast('Please enter your Firebase Database URL.', 'warning');
+            if (!url) {
+                showToast('Please paste your Database URL first.', 'warning');
                 return;
             }
 
-            cloudConfig.firebaseUrl = url;
-            cloudConfig.syncKey = key;
-            cloudConfig.apiKey = apiKey;
+            btnSave.textContent = '⏳ Connecting & Syncing...';
+            btnSave.disabled = true;
+
+            cloudConfig.syncUrl = url;
             cloudConfig.autoSync = autoSync;
             saveCloudConfig();
 
-            hideModal();
             initRealtimeCloudSync();
-            if (url && key) {
-                showToast('✅ Cloud Database configured! Syncing now...', 'success');
-                pushStateToCloud(false);
+
+            // Pull or push instantly
+            const success = await pullStateFromCloud(false);
+            btnSave.textContent = '⚡ Connect & Sync Now (1-Step)';
+            btnSave.disabled = false;
+
+            if (success) {
+                hideModal();
+                showToast('🎉 1-Step Cloud Sync Connected! Real-time live sync active.', 'success');
             } else {
-                showToast('Local offline storage active.', 'info');
+                showToast('⚠️ Could not connect to this URL. Please verify the link.', 'warning');
             }
         });
 
         btnTest?.addEventListener('click', async () => {
             const url = inputUrl?.value?.trim();
-            const key = inputKey?.value?.trim() || 'test';
             if (!url) {
-                showToast('Please enter a Firebase Database URL to test.', 'warning');
+                showToast('Please enter a Database URL to test.', 'warning');
                 return;
             }
             btnTest.textContent = '⏳ Testing...';
             try {
-                const cleanUrl = getCleanFirebaseUrl(url);
-                const testUrl = `${cleanUrl}/journals/${encodeURIComponent(key)}/ping.json`;
-                const res = await fetch(testUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ping: Date.now() })
-                });
+                const endpoint = getNormalizedSyncEndpoint(url);
+                const res = await fetch(endpoint.restUrl);
                 if (res.ok) {
-                    showToast('✅ Firebase Realtime DB connection successful!', 'success');
+                    showToast('✅ Database Link is working and accessible!', 'success');
                 } else {
-                    showToast(`⚠️ Server replied with status: ${res.status} (Check database security rules)`, 'warning');
+                    showToast(`⚠️ Server replied with status: ${res.status}`, 'warning');
                 }
             } catch (err) {
-                showToast(`❌ Connection failed: ${err.message}`, 'error');
+                showToast(`❌ Test connection failed: ${err.message}`, 'error');
             } finally {
-                btnTest.textContent = '⚡ Test Connection';
+                btnTest.textContent = '⚡ Test Link';
             }
         });
 
@@ -589,17 +668,17 @@
         btnPull?.addEventListener('click', () => pullStateFromCloud(true));
 
         btnClear?.addEventListener('click', () => {
-            if (confirm('Disconnect from Cloud Database and reset sync configuration? (Your local data will be kept safe)')) {
-                cloudConfig.firebaseUrl = '';
-                cloudConfig.syncKey = '';
-                cloudConfig.apiKey = '';
+            if (confirm('Disconnect from Cloud Sync? (Your local data remains completely safe)')) {
+                cloudConfig.syncUrl = '';
                 saveCloudConfig();
                 if (inputUrl) inputUrl.value = '';
-                if (inputKey) inputKey.value = '';
-                if (inputApiKey) inputApiKey.value = '';
                 if (cloudDbRef) {
                     cloudDbRef.off();
                     cloudDbRef = null;
+                }
+                if (cloudPollInterval) {
+                    clearInterval(cloudPollInterval);
+                    cloudPollInterval = null;
                 }
                 updateCloudStatusUI('offline');
                 showToast('Disconnected from Cloud Database.', 'info');
@@ -621,11 +700,11 @@
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
-            if (triggerCloud && cloudConfig.autoSync && cloudConfig.firebaseUrl && cloudConfig.syncKey) {
+            if (triggerCloud && cloudConfig.autoSync && cloudConfig.syncUrl) {
                 if (cloudSyncDebounceTimer) clearTimeout(cloudSyncDebounceTimer);
                 cloudSyncDebounceTimer = setTimeout(() => {
                     pushStateToCloud(false);
-                }, 800);
+                }, 600);
             }
         } catch (e) {
             console.error('Failed to save state', e);

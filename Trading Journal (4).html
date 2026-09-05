@@ -2205,92 +2205,99 @@
     </div>
 </div>
 
-<!-- ═══════════════ REALTIME CLOUD DATABASE SYNC MODAL ═══════════════ -->
+<!-- ═══════════════ 1-STEP REALTIME CLOUD DATABASE SYNC MODAL ═══════════════ -->
 <div id="modal-cloud-sync" class="modal-overlay hidden">
     <div class="modal modal-lg">
         <div class="modal-header">
             <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.4rem;">☁️</span>
+                <span style="font-size:1.5rem;">☁️</span>
                 <div>
-                    <h3 style="margin:0; font-size:1.15rem;">Realtime Database &amp; Multi-Device Cloud Sync</h3>
-                    <p style="margin:0; font-size:0.75rem; color:var(--text-sub);">Instant bi-directional live sync between Desktop PC, Laptop &amp; Mobile App</p>
+                    <h3 style="margin:0; font-size:1.2rem;">1-Step Cloud Database Link</h3>
+                    <p style="margin:0; font-size:0.78rem; color:var(--text-sub);">Just paste your database URL to sync your journal across Phone, Tablet &amp; PC</p>
                 </div>
             </div>
             <button class="modal-close-btn" id="btn-close-cloud-sync-modal">&times;</button>
         </div>
         <div class="modal-body">
             <!-- Sync Status Banner -->
-            <div id="cloud-sync-banner" style="background:var(--bg-sub); padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span class="cloud-status-dot offline" id="cloud-modal-status-dot"></span>
+            <div id="cloud-sync-banner" style="background:var(--bg-sub); padding:14px 18px; border-radius:var(--radius-lg); border:1px solid var(--border-card); margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span class="cloud-status-dot offline" id="cloud-modal-status-dot" style="width:12px; height:12px;"></span>
                     <div>
-                        <div style="font-weight:750; font-size:0.9rem;" id="cloud-modal-status-title">Status: Local Offline Storage</div>
-                        <div style="font-size:0.75rem; color:var(--text-sub);" id="cloud-modal-status-desc">All data saved locally on this browser. Connect Firebase for live cross-device sync.</div>
+                        <div style="font-weight:750; font-size:0.95rem;" id="cloud-modal-status-title">Status: Local Storage Only</div>
+                        <div style="font-size:0.78rem; color:var(--text-sub);" id="cloud-modal-status-desc">All trades are stored locally. Paste a URL below to enable instant live sync.</div>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <button type="button" class="btn btn-secondary btn-xs" id="btn-cloud-test-conn" style="padding:4px 10px; font-weight:700;">⚡ Test Connection</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-cloud-test-conn" style="padding:5px 12px; font-weight:700;">⚡ Test Link</button>
                 </div>
             </div>
 
-            <!-- Configuration Form -->
-            <div class="form-row">
-                <div class="form-group flex-2">
-                    <label class="form-label" for="cloud-firebase-url" style="font-weight:700;">
-                        Firebase Realtime Database URL <span class="form-label-hint">https://your-app-default-rtdb.firebaseio.com</span>
+            <!-- Single 1-Step URL Box -->
+            <div class="form-group" style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label class="form-label" for="cloud-firebase-url" style="font-weight:800; font-size:0.92rem; margin:0;">
+                        🔗 Paste Cloud Sync / Database URL
                     </label>
-                    <input type="text" id="cloud-firebase-url" class="form-input" placeholder="e.g. https://my-swing-journal-rtdb.firebaseio.com">
+                    <button type="button" class="btn btn-secondary btn-xs" id="btn-cloud-paste-clip" style="font-weight:700; padding:2px 8px;">
+                        📋 Paste from Clipboard
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="cloud-sync-key" style="font-weight:700;">
-                        Sync Vault Key / PIN <span class="form-label-hint">Shared on all devices</span>
-                    </label>
-                    <input type="text" id="cloud-sync-key" class="form-input" placeholder="e.g. trader_vault_2026">
+                <input type="text" id="cloud-firebase-url" class="form-input" style="font-size:0.95rem; padding:12px 14px; font-family:var(--font-mono);" placeholder="e.g. https://my-journal-sync.firebaseio.com">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.75rem; color:var(--text-sub);">
+                    <span>Works with Firebase Realtime DB, npoint.io, jsonbin.io, or any cloud JSON link.</span>
+                    <span style="color:#10b981; font-weight:700;">Zero API keys required!</span>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="cloud-firebase-api-key" style="font-size:0.8rem;">
-                    Firebase API Key (Optional for REST auth rules)
-                </label>
-                <input type="text" id="cloud-firebase-api-key" class="form-input" style="font-size:0.8rem;" placeholder="e.g. AIzaSy...">
+            <!-- Big 1-Step Connect Button -->
+            <div style="margin-bottom:18px;">
+                <button type="button" class="btn btn-primary" id="btn-save-cloud-config" style="width:100%; min-height:48px; font-size:1.02rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    ⚡ Connect &amp; Sync Now (1-Step)
+                </button>
             </div>
 
-            <!-- Auto-sync toggle & Options -->
-            <div style="background:var(--bg-elevated); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:16px;">
+            <!-- Quick Sync Operations & Auto-Sync Toggle -->
+            <div style="background:var(--bg-elevated); padding:12px 16px; border-radius:var(--radius-md); border:1px solid var(--border-card); margin-bottom:16px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                    <div>
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--text-main); margin:0;">
-                            <input type="checkbox" id="cloud-auto-sync-toggle" style="width:17px; height:17px;" checked>
-                            <span>⚡ Enable Live Bi-directional Auto-Sync</span>
-                        </label>
-                        <p style="margin:2px 0 0 25px; font-size:0.74rem; color:var(--text-sub);">Automatically pushes your trades &amp; listens in real-time for updates made on your phone.</p>
-                    </div>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--text-main); margin:0;">
+                        <input type="checkbox" id="cloud-auto-sync-toggle" style="width:18px; height:18px; accent-color:var(--accent-primary);" checked>
+                        <span>⚡ Live Auto-Sync (Real-time live push &amp; pull)</span>
+                    </label>
                     <div style="display:flex; gap:8px;">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-cloud-push-now" title="Push all current local data to Firebase">⬆️ Push to Cloud</button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-cloud-pull-now" title="Download latest data from Firebase">⬇️ Pull from Cloud</button>
+                        <button type="button" class="btn btn-secondary btn-xs" id="btn-cloud-push-now" title="Push local trades to cloud">⬆️ Push to Cloud</button>
+                        <button type="button" class="btn btn-secondary btn-xs" id="btn-cloud-pull-now" title="Download latest data from cloud">⬇️ Pull from Cloud</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Free Setup Guide Accordion -->
-            <details style="background:var(--bg-input); padding:10px 14px; border-radius:var(--radius-md); border:1px dashed var(--border-card); font-size:0.82rem;">
-                <summary style="font-weight:700; cursor:pointer; color:var(--accent-primary);">📘 How to set up your 100% Free Firebase Realtime DB in 2 minutes (Click to expand)</summary>
-                <ol style="margin:10px 0 0 18px; padding:0; line-height:1.6; color:var(--text-sub);">
-                    <li>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary); text-decoration:underline;">console.firebase.google.com</a> and click <strong>"Create a project"</strong> (Free tier / Spark plan).</li>
-                    <li>In the left sidebar under <strong>Build</strong>, click <strong>"Realtime Database"</strong> &rarr; <strong>"Create Database"</strong>.</li>
-                    <li>Select <strong>"Start in test mode"</strong> (or set read/write rules to <code>true</code>) and choose any location.</li>
-                    <li>Copy your database URL (e.g. <code>https://my-app-rtdb.asia-southeast1.firebasedatabase.app</code> or <code>https://my-app.firebaseio.com</code>) and paste it into the box above.</li>
-                    <li>Set any secret <strong>Sync Vault Key</strong> (e.g. <code>my_journal_vault</code>). Enter the same URL &amp; Vault Key on your mobile phone to enjoy live sync!</li>
-                </ol>
+            <!-- 1-Minute Easy Guide Accordion -->
+            <details style="background:var(--bg-input); padding:12px 16px; border-radius:var(--radius-md); border:1px dashed var(--border-card); font-size:0.82rem;">
+                <summary style="font-weight:750; cursor:pointer; color:var(--accent-primary); font-size:0.85rem;">
+                    💡 How to get a 100% Free Database Link in 1 minute (Click to see)
+                </summary>
+                <div style="margin-top:10px; line-height:1.6; color:var(--text-sub);">
+                    <div style="margin-bottom:8px;">
+                        <strong style="color:var(--text-main);">Option A: Firebase Realtime Database (Recommended - Free forever)</strong>
+                        <ol style="margin:4px 0 0 20px; padding:0;">
+                            <li>Open <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary); text-decoration:underline;">console.firebase.google.com</a> &rarr; Click <strong>Create a project</strong>.</li>
+                            <li>Click <strong>Build &rarr; Realtime Database &rarr; Create Database</strong> (Select Test mode).</li>
+                            <li>Copy the database URL shown (e.g. <code>https://my-journal-123.firebaseio.com</code>) and paste it above!</li>
+                        </ol>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <strong style="color:var(--text-main);">Option B: npoint.io (Zero Login - 10 seconds)</strong>
+                        <ol style="margin:4px 0 0 20px; padding:0;">
+                            <li>Go to <a href="https://www.npoint.io/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary); text-decoration:underline;">npoint.io</a> &rarr; click <strong>Save</strong> on empty JSON <code>{}</code>.</li>
+                            <li>Copy the generated URL (e.g. <code>https://api.npoint.io/xxxxxx</code>) and paste it above!</li>
+                        </ol>
+                    </div>
+                </div>
             </details>
         </div>
         <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
-            <button type="button" class="btn btn-ghost" id="btn-cloud-clear-config" style="color:#ef4444; font-size:0.8rem;">Disconnect / Reset</button>
-            <div style="display:flex; gap:10px;">
-                <button type="button" class="btn btn-secondary" id="btn-close-cloud-sync">Close</button>
-                <button type="button" class="btn btn-primary" id="btn-save-cloud-config">💾 Save &amp; Connect Cloud</button>
-            </div>
+            <button type="button" class="btn btn-ghost" id="btn-cloud-clear-config" style="color:#ef4444; font-size:0.82rem;">Disconnect Cloud</button>
+            <button type="button" class="btn btn-secondary" id="btn-close-cloud-sync">Close</button>
         </div>
     </div>
 </div>
